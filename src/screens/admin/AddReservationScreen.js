@@ -172,9 +172,6 @@ const AddReservationScreen = ({ navigation }) => {
 
       {/* Reservations List */}
       <View style={tw`flex-1 p-4`}>
-        <Text style={tw`text-lg font-semibold mb-2 text-gray-800`}>
-          Reservations
-        </Text>
         <FlatList
           data={reservations}
           keyExtractor={(_, index) => index.toString()}
