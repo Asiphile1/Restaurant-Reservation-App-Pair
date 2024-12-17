@@ -57,11 +57,13 @@ import { NavigationContainer } from '@react-navigation/native'; // Import Naviga
 import store from './src/state/store';
 import './src/styles/global.css';
 import AppNavigator from './src/navigation/AppNavigator';
+import { StatusBar } from 'expo-status-bar';
 
 const App = () => {
   return (
     <Provider store={store}>
-      <NavigationContainer> {/* Wrap AppNavigator with NavigationContainer */}
+      <NavigationContainer> 
+        <StatusBar style={'dark'} backgroundColor={'transparent'}/>
         <AppNavigator />
       </NavigationContainer>
     </Provider>

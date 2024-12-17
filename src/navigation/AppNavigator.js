@@ -468,6 +468,7 @@ import SignupScreen from '../screens/shared/SignupScreen';
 import AdminStack from './AdminStack';
 import UserStack from './UserStack';
 import DashboardScreen from '../screens/admin/DashboardScreen';
+import HomeScreen from '../screens/user/HomeScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -504,8 +505,8 @@ const AppNavigator = () => (
       options={{ headerShown: false }}
     />
     {/* <Stack.Screen
-      name="Dashboard"
-      component={DashboardScreen}
+      name="Home"
+      component={HomeScreen}
       options={{ headerShown: false }}
     /> */}
   </Stack.Navigator>
