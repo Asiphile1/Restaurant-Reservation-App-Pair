@@ -13,6 +13,7 @@ import AddReservationScreen from '../screens/admin/AddReservationScreen';
 import ManageBookingsScreen from '../screens/admin/ManageBookingsScreen';
 import PaymentsScreen from '../screens/admin/PaymentsScreen';
 import ManageStores from '../screens/admin/ManageStores';
+import RestaurantDetailsScreen from '../screens/admin/RestaurantDetailsScreen';
 
 // Navigation Theme
 const navigationTheme = {
@@ -57,7 +58,7 @@ const DashboardStack = () => {
       <Stack.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: 'Admin Profile' }}
+        options={{ title: '', headerShown: false }}
       />
       <Stack.Screen
         name="Settings"
@@ -158,6 +159,11 @@ const AdminStack = () => {
         name="ManageStores"
         component={ManageStores}
         options={{ title: 'Store Management' }}
+      />
+      <Stack.Screen
+        name="RestaurantDetailsScreen"
+        component={RestaurantDetailsScreen}
+        options={{ title: 'Restaurant Management' }}
       />
     </Stack.Navigator>
   );

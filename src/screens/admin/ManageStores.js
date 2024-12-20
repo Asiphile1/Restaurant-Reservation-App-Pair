@@ -11,9 +11,22 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import tw from 'twrnc';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
+import * as ImagePicker from 'expo-image-picker'; // Expo Image Picker
+import { Picker } from '@react-native-picker/picker'; // Native Picker
+import DropdownPicker from 'react-native-dropdown-picker'; // Dropdown for Web
+
+// Conditionally import Picker for native platforms
+const CityPicker = Platform.select({
+  ios: Picker,
+  android: Picker,
+  web: DropdownPicker, // Use DropdownPicker for web
+});
 
 const ManageStores = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -22,132 +35,260 @@ const ManageStores = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState(null);
 
-  // State for new/edit restaurant form
-  const [name, setName] = useState('');
-  const [image, setImage] = useState('');
-  const [location, setLocation] = useState('');
-  const [cuisine, setCuisine] = useState('');
-  const [capacity, setCapacity] = useState('');
+  const [form, setForm] = useState({
+    name: '',
+    image: null,
+    description: '', // Added description field
+    address: '',
+    city: '',
+    cuisine: '',
+    capacity: '',
+    phone: '',
+    email: '',
+    price: { lunch: '', dinner: '' },
+    coordinates: {
+      type: 'Point',
+      coordinates: [0, 0], // Default coordinates
+    },
+  });
 
-  // Fetch restaurants from the backend
+  const navigation = useNavigation();
+  const token = useSelector((state) => state.auth.token);
+
+  // List of cities in Gauteng
+  const gautengCities = [
+    'Johannesburg',
+    'Pretoria',
+    'Soweto',
+    'Benoni',
+    'Vereeniging',
+    'Roodepoort',
+    'Boksburg',
+    'Alberton',
+    'Krugersdorp',
+    'Randburg',
+    'Midrand',
+    'Sandton',
+    'Germiston',
+    'Tembisa',
+    'Centurion',
+    'Carletonville',
+    'Springs',
+    'Krugersdorp',
+    'Randfontein',
+    'Emfuleni',
+    'Westonaria',
+    'Ekurhuleni',
+  ];
+
+  // Request permissions for image picker
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+        }
+      }
+    })();
+  }, []);
+
+  // Fetch restaurants data
   const fetchRestaurants = async () => {
     try {
-      const response = await fetch('https://reservationappserver.onrender.com/restaurants');
+      const response = await fetch('https://reservationappserver.onrender.com/restaurants', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (response.ok) {
         const data = await response.json();
-        setRestaurants(data);
+        // Extract the `restaurants` array from the API response
+        setRestaurants(data.restaurants || []);
       } else {
-        console.error('Failed to fetch restaurants:', response.statusText);
+        throw new Error('Failed to fetch restaurants');
       }
     } catch (error) {
       console.error('Error fetching restaurants:', error);
+      Alert.alert('Error', 'Failed to fetch restaurants. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Fetch data on component mount
   useEffect(() => {
     fetchRestaurants();
   }, []);
 
-  // Handle pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     fetchRestaurants();
   };
 
-  // Handle adding a new restaurant
-  const handleAddRestaurant = async () => {
-    if (!name || !image || !location || !cuisine || !capacity) {
-      Alert.alert('Error', 'Please fill out all fields.');
+  const resetForm = () => {
+    setForm({
+      name: '',
+      image: null,
+      description: '',
+      address: '',
+      city: '',
+      cuisine: '',
+      capacity: '',
+      phone: '',
+      email: '',
+      price: { lunch: '', dinner: '' },
+      coordinates: {
+        type: 'Point',
+        coordinates: [0, 0],
+      },
+    });
+    setEditingRestaurant(null);
+  };
+
+  // Handle adding and updating restaurants
+  const handleRestaurantSubmit = async () => {
+    const {
+      name,
+      image,
+      description,
+      address,
+      city,
+      cuisine,
+      capacity,
+      phone,
+      email,
+      price,
+      coordinates,
+    } = form;
+
+    // Validate required fields
+    if (
+      !name ||
+      !image ||
+      !description ||
+      !address ||
+      !city ||
+      !cuisine ||
+      !capacity ||
+      !price.lunch ||
+      !price.dinner ||
+      !phone ||
+      !email
+    ) {
+      Alert.alert('Error', 'Please fill out all required fields.');
       return;
     }
 
-    const newRestaurant = {
+    // Validate price fields
+    if (isNaN(price.lunch) || isNaN(price.dinner)) {
+      Alert.alert('Error', 'Price fields must be numbers.');
+      return;
+    }
+
+    // Upload image if it's a local file
+    let imageUrl = image ? image.uri : null;
+    if (image && image.uri && !image.uri.startsWith('http')) {
+      try {
+        imageUrl = await uploadImage(image.uri);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to upload image.');
+        return;
+      }
+    }
+
+    const restaurantData = {
       name,
-      image,
-      location,
+      image: imageUrl,
+      description,
+      location: `${address}, ${city}`, // Combine address and city into location
+      coordinates, // Ensure coordinates are included
       cuisine,
       capacity: parseInt(capacity, 10),
-      availableSlots: [],
-      averageRating: 0,
-      totalReviews: 0,
+      phone,
+      email,
+      price: {
+        lunch: parseFloat(price.lunch),
+        dinner: parseFloat(price.dinner),
+      },
+      averageRating: 0, // Optional: Add if required
+      totalReviews: 0, // Optional: Add if required
+      user: token.userId, // Ensure the user ID is included
     };
 
+    // Log the restaurantData object
+    console.log('Restaurant Data:', JSON.stringify(restaurantData, null, 2));
+
+    const method = editingRestaurant ? 'PUT' : 'POST';
+    const url = editingRestaurant
+      ? `https://reservationappserver.onrender.com/restaurants/${editingRestaurant._id}`
+      : 'https://reservationappserver.onrender.com/restaurants';
+
     try {
-      const response = await fetch('https://reservationappserver.onrender.com/restaurants', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(newRestaurant),
+        body: JSON.stringify(restaurantData),
       });
 
       if (response.ok) {
-        const createdRestaurant = await response.json();
-        setRestaurants([...restaurants, createdRestaurant]);
-        Alert.alert('Success', 'Restaurant added successfully!');
+        const updatedRestaurant = await response.json();
+        setRestaurants((prevRestaurants) =>
+          editingRestaurant
+            ? prevRestaurants.map((restaurant) =>
+                restaurant._id === updatedRestaurant._id ? updatedRestaurant : restaurant
+              )
+            : [...prevRestaurants, updatedRestaurant]
+        );
+        Alert.alert('Success', `Restaurant ${editingRestaurant ? 'updated' : 'added'} successfully!`);
         setModalVisible(false);
         resetForm();
       } else {
-        Alert.alert('Error', 'Failed to add restaurant. Please try again.');
+        const errorResponse = await response.json();
+        console.error('Server Error:', errorResponse);
+        Alert.alert('Error', `Failed to save restaurant. Server responded with: ${response.status} - ${JSON.stringify(errorResponse)}`);
       }
     } catch (error) {
-      console.error('Error adding restaurant:', error);
+      console.error('Error saving restaurant:', error);
       Alert.alert('Error', 'An error occurred. Please try again.');
     }
   };
 
-  // Handle updating an existing restaurant
-  const handleUpdateRestaurant = async () => {
-    if (!name || !image || !location || !cuisine || !capacity) {
-      Alert.alert('Error', 'Please fill out all fields.');
-      return;
-    }
-
-    const updatedRestaurant = {
-      name,
-      image,
-      location,
-      cuisine,
-      capacity: parseInt(capacity, 10),
-    };
+  // Handle image upload
+  const uploadImage = async (uri) => {
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: `image_${new Date().getTime()}.jpg`,
+      type: 'image/jpeg',
+    });
 
     try {
-      const response = await fetch(
-        `https://reservationappserver.onrender.com/restaurants/${editingRestaurant._id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updatedRestaurant),
-        }
-      );
+      const response = await fetch('https://reservationappserver.onrender.com/restaurant/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-      if (response.ok) {
-        const updatedData = await response.json();
-        setRestaurants(
-          restaurants.map((restaurant) =>
-            restaurant._id === updatedData._id ? updatedData : restaurant
-          )
-        );
-        Alert.alert('Success', 'Restaurant updated successfully!');
-        setModalVisible(false);
-        resetForm();
-      } else {
-        Alert.alert('Error', 'Failed to update restaurant. Please try again.');
+      if (!response.ok) {
+        throw new Error('Image upload failed');
       }
+
+      const data = await response.json();
+      return data.url;
     } catch (error) {
-      console.error('Error updating restaurant:', error);
-      Alert.alert('Error', 'An error occurred. Please try again.');
+      console.error('Image upload error:', error);
+      throw error;
     }
   };
 
-  // Handle deleting a restaurant
+  // Handle delete restaurant
   const handleDeleteRestaurant = async (id) => {
+    // const { id } = restaurants.body
+    console.log('id' , id)
     Alert.alert(
       'Confirm Delete',
       'Are you sure you want to delete this restaurant?',
@@ -160,19 +301,19 @@ const ManageStores = () => {
             try {
               const response = await fetch(
                 `https://reservationappserver.onrender.com/restaurants/${id}`,
-                {
-                  method: 'DELETE',
-                }
+                { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
               );
 
               if (response.ok) {
-                setRestaurants(restaurants.filter((restaurant) => restaurant._id !== id));
+                setRestaurants((prevRestaurants) =>
+                  prevRestaurants.filter((restaurant) => restaurant._id !== id)
+                );
                 Alert.alert('Success', 'Restaurant deleted successfully!');
               } else {
-                Alert.alert('Error', 'Failed to delete restaurant. Please try again.');
+                throw new Error('Failed to delete restaurant.');
               }
             } catch (error) {
-              console.error('Error deleting restaurant:', error);
+              console.error(error);
               Alert.alert('Error', 'An error occurred. Please try again.');
             }
           },
@@ -181,186 +322,266 @@ const ManageStores = () => {
     );
   };
 
-  // Reset form fields
-  const resetForm = () => {
-    setName('');
-    setImage('');
-    setLocation('');
-    setCuisine('');
-    setCapacity('');
-    setEditingRestaurant(null);
-  };
-
-  // Render each restaurant item
-  const renderRestaurantItem = ({ item }) => (
-    <View style={tw`flex-row p-4 mb-4 bg-white border border-gray-300 rounded-lg shadow-sm`}>
-      {/* Restaurant Image */}
-      <Image
-        source={{ uri: item.image }}
-        style={tw`w-24 h-24 rounded-lg mr-4`}
-        resizeMode="cover"
-      />
-
-      {/* Restaurant Details */}
-      <View style={tw`flex-1`}>
-        <Text style={tw`text-lg font-semibold text-gray-800`}>{item.name}</Text>
-        <Text style={tw`text-sm text-gray-600`}>{item.location}</Text>
-        <Text style={tw`text-sm text-gray-600`}>Cuisine: {item.cuisine}</Text>
-        <Text style={tw`text-sm text-gray-600`}>Capacity: {item.capacity}</Text>
-        <Text style={tw`text-sm text-gray-600`}>
-          Average Rating: {item.averageRating} ({item.totalReviews} reviews)
-        </Text>
-      </View>
-
-      {/* Edit and Delete Buttons */}
-      <View style={tw`flex-row items-center`}>
-        <TouchableOpacity
-          style={tw`mr-4`}
-          onPress={() => {
-            setEditingRestaurant(item);
-            setName(item.name);
-            setImage(item.image);
-            setLocation(item.location);
-            setCuisine(item.cuisine);
-            setCapacity(item.capacity.toString());
-            setModalVisible(true);
-          }}
-        >
-          <Ionicons name="create-outline" size={24} color="blue" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteRestaurant(item._id)}>
-          <Ionicons name="trash-outline" size={24} color="red" />
-        </TouchableOpacity>
-      </View>
+  // Render restaurant item
+// Render restaurant item
+const renderRestaurantItem = ({ item }) => (
+  <TouchableOpacity
+    style={tw`flex-row p-4 mb-4 bg-white border border-gray-300 rounded-lg shadow-sm`}
+    onPress={() => navigation.navigate('RestaurantDetailsScreen', { restaurant: item })} // Pass the restaurant object
+  >
+    <Image
+      source={{ uri: item.image }}
+      style={tw`w-24 h-24 rounded-lg mr-4`}
+      resizeMode="cover"
+    />
+    <View style={tw`flex-1`}>
+      <Text style={tw`text-lg font-semibold text-gray-800`}>{item.name}</Text>
+      <Text style={tw`text-sm text-gray-600`}>{item.location}</Text>
+      <Text style={tw`text-sm text-gray-600`}>Cuisine: {item.cuisine}</Text>
+      <Text style={tw`text-sm text-gray-600`}>Capacity: {item.capacity}</Text>
     </View>
-  );
+    <View style={tw`flex-row items-center`}>
+      <TouchableOpacity
+        style={tw`mr-4`}
+        onPress={() => {
+          setEditingRestaurant(item);
+          setForm({
+            name: item.name,
+            image: { uri: item.image },
+            description: item.description || '',
+            address: item.location.split(', ')[0],
+            city: item.location.split(', ')[1],
+            cuisine: item.cuisine,
+            capacity: item.capacity.toString(),
+            phone: item.phone || '',
+            email: item.email || '',
+            price: {
+              lunch: item.price?.lunch.toString() || '',
+              dinner: item.price?.dinner.toString() || '',
+            },
+            coordinates: item.coordinates || { type: 'Point', coordinates: [0, 0] },
+          });
+          setModalVisible(true);
+        }}
+      >
+        <Ionicons name="create-outline" size={24} color="blue" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => handleDeleteRestaurant(item._id)}>
+        <Ionicons name="trash-outline" size={24} color="red" />
+      </TouchableOpacity>
+    </View>
+  </TouchableOpacity>
+);
+
+  // Handle image picker
+  const handleImagePicker = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.cancelled) {
+      setForm((prev) => ({ ...prev, image: { uri: result.uri } }));
+    }
+  };
 
   return (
     <View style={tw`flex-1 bg-gray-100 p-4`}>
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" style={tw`flex-1 justify-center items-center`} />
+      ) : (
+        <>
+          <FlatList
+            data={restaurants}
+            keyExtractor={(item) => item._id.toString()}
+            renderItem={renderRestaurantItem}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          />
 
-      {/* Loading Indicator */}
-      {loading && (
-        <View style={tw`flex-1 justify-center items-center`}>
-          <ActivityIndicator size="large" color="#0000ff" />
-        </View>
-      )}
-
-      {/* Restaurant List */}
-      {!loading && (
-        <FlatList
-          data={restaurants}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={renderRestaurantItem}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
-      )}
-
-      {/* No Data Message */}
-      {!loading && restaurants.length === 0 && (
-        <View style={tw`flex-1 justify-center items-center`}>
-          <Text style={tw`text-lg text-gray-600`}>No restaurants found.</Text>
-        </View>
-      )}
-
-      {/* Floating Button to Add Restaurant */}
-      <TouchableOpacity
-        style={tw`absolute bottom-4 right-4 bg-blue-500 p-4 rounded-full shadow-lg`}
-        onPress={() => setModalVisible(true)}
-      >
-        <Ionicons name="add" size={24} color="white" />
-      </TouchableOpacity>
-
-      {/* Modal for Adding/Editing Restaurant */}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={tw`flex-1 bg-white p-4`}>
-          <Text style={tw`text-2xl font-bold mb-4 text-gray-800`}>
-            {editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
-          </Text>
-
-          <ScrollView>
-            {/* Name Input */}
-            <View style={tw`mb-4`}>
-              <Text style={tw`mb-2 font-medium text-gray-700`}>Name</Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Enter restaurant name"
-                style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
-              />
+          {!restaurants.length && (
+            <View style={tw`flex-1 justify-center items-center`}>
+              <Text style={tw`text-lg text-gray-600`}>No restaurants found.</Text>
             </View>
+          )}
 
-            {/* Image URL Input */}
-            <View style={tw`mb-4`}>
-              <Text style={tw`mb-2 font-medium text-gray-700`}>Image URL</Text>
-              <TextInput
-                value={image}
-                onChangeText={setImage}
-                placeholder="Enter image URL"
-                style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
-              />
-            </View>
+          <TouchableOpacity
+            style={tw`absolute bottom-4 right-4 bg-blue-500 p-4 rounded-full shadow-lg`}
+            onPress={() => setModalVisible(true)}
+          >
+            <Ionicons name="add" size={24} color="white" />
+          </TouchableOpacity>
 
-            {/* Location Input */}
-            <View style={tw`mb-4`}>
-              <Text style={tw`mb-2 font-medium text-gray-700`}>Location</Text>
-              <TextInput
-                value={location}
-                onChangeText={setLocation}
-                placeholder="Enter location"
-                style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
-              />
-            </View>
-
-            {/* Cuisine Input */}
-            <View style={tw`mb-4`}>
-              <Text style={tw`mb-2 font-medium text-gray-700`}>Cuisine</Text>
-              <TextInput
-                value={cuisine}
-                onChangeText={setCuisine}
-                placeholder="Enter cuisine type"
-                style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
-              />
-            </View>
-
-            {/* Capacity Input */}
-            <View style={tw`mb-6`}>
-              <Text style={tw`mb-2 font-medium text-gray-700`}>Capacity</Text>
-              <TextInput
-                value={capacity}
-                onChangeText={(text) => setCapacity(text)}
-                placeholder="Enter capacity"
-                keyboardType="numeric"
-                style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
-              />
-            </View>
-
-            {/* Add/Update Restaurant Button */}
-            <TouchableOpacity
-              onPress={editingRestaurant ? handleUpdateRestaurant : handleAddRestaurant}
-              style={tw`bg-blue-500 p-4 rounded-lg shadow-lg`}
-            >
-              <Text style={tw`text-white text-center font-medium`}>
-                {editingRestaurant ? 'Update Restaurant' : 'Add Restaurant'}
+          <Modal
+            animationType="slide"
+            transparent={false}
+            visible={modalVisible}
+            onRequestClose={() => setModalVisible(false)}
+          >
+            <View style={tw`flex-1 bg-white p-4`}>
+              <Text style={tw`text-2xl font-bold mb-4 text-gray-800`}>
+                {editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
               </Text>
-            </TouchableOpacity>
 
-            {/* Cancel Button */}
-            <TouchableOpacity
-              onPress={() => setModalVisible(false)}
-              style={tw`bg-gray-300 p-4 rounded-lg shadow-lg mt-4`}
-            >
-              <Text style={tw`text-gray-800 text-center font-medium`}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
+              <ScrollView>
+                {/* Form fields */}
+                {/* Name */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Name</Text>
+                  <TextInput
+                    value={form.name}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
+                    placeholder="Enter name"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Image */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Image</Text>
+                  <TouchableOpacity onPress={handleImagePicker} style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}>
+                    <Text>{form.image ? 'Change Image' : 'Select Image'}</Text>
+                  </TouchableOpacity>
+                  {form.image && <Image source={form.image} style={tw`w-24 h-24 mt-2`} />}
+                </View>
+
+                {/* Description */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Description</Text>
+                  <TextInput
+                    value={form.description}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, description: value }))}
+                    placeholder="Enter description"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Address */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Address</Text>
+                  <TextInput
+                    value={form.address}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, address: value }))}
+                    placeholder="Enter address"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* City */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>City</Text>
+                  {Platform.OS !== 'web' ? (
+                    <CityPicker
+                      selectedValue={form.city}
+                      onValueChange={(value) => setForm((prev) => ({ ...prev, city: value }))}
+                      style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                    >
+                      <Picker.Item label="Select a city" value="" />
+                      {gautengCities.map((city) => (
+                        <Picker.Item key={city} label={city} value={city} />
+                      ))}
+                    </CityPicker>
+                  ) : (
+                    <DropdownPicker
+                      open={false}
+                      value={form.city}
+                      items={gautengCities.map((city) => ({ label: city, value: city }))}
+                      setValue={(value) => setForm((prev) => ({ ...prev, city: value }))}
+                      style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                    />
+                  )}
+                </View>
+
+                {/* Cuisine */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Cuisine</Text>
+                  <TextInput
+                    value={form.cuisine}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, cuisine: value }))}
+                    placeholder="Enter cuisine"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Capacity */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Capacity</Text>
+                  <TextInput
+                    value={form.capacity}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, capacity: value }))}
+                    placeholder="Enter capacity"
+                    keyboardType="numeric"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Phone */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Phone</Text>
+                  <TextInput
+                    value={form.phone}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, phone: value }))}
+                    placeholder="Enter phone number"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Email */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Email</Text>
+                  <TextInput
+                    value={form.email}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, email: value }))}
+                    placeholder="Enter email"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Price - Lunch */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Price - Lunch</Text>
+                  <TextInput
+                    value={form.price.lunch}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, price: { ...prev.price, lunch: value } }))}
+                    placeholder="Enter lunch price"
+                    keyboardType="numeric"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                {/* Price - Dinner */}
+                <View style={tw`mb-4`}>
+                  <Text style={tw`mb-2 font-medium text-gray-700`}>Price - Dinner</Text>
+                  <TextInput
+                    value={form.price.dinner}
+                    onChangeText={(value) => setForm((prev) => ({ ...prev, price: { ...prev.price, dinner: value } }))}
+                    placeholder="Enter dinner price"
+                    keyboardType="numeric"
+                    style={tw`w-full p-4 border border-gray-300 rounded-lg text-base bg-white`}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleRestaurantSubmit}
+                  style={tw`bg-blue-500 p-4 rounded-lg shadow-lg`}
+                >
+                  <Text style={tw`text-white text-center font-medium`}>
+                    {editingRestaurant ? 'Update Restaurant' : 'Add Restaurant'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setModalVisible(false)}
+                  style={tw`bg-gray-300 p-4 rounded-lg shadow-lg mt-4`}
+                >
+                  <Text style={tw`text-gray-800 text-center font-medium`}>Cancel</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </Modal>
+        </>
+      )}
     </View>
   );
 };

@@ -103,7 +103,7 @@ const DashboardScreen = ({ navigation }) => {
         {/* Key Metrics Section */}
         <View style={tw`p-4`}>
           <Text style={tw`text-lg font-semibold mb-4 text-gray-800`}>Overview</Text>
-          <View style={tw`flex-row justify-between space-x-4`}>
+          <View style={tw`flex-row justify-between`}>
             {/* Total Reservations */}
             <View style={tw`bg-white p-4 rounded-lg flex-1 items-center shadow-sm`}>
               <Text style={tw`text-2xl font-bold text-gray-900`}>{metrics.totalReservations}</Text>
