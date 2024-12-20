@@ -77,7 +77,7 @@ const PaymentScreen = ({ route, navigation }) => {
 
       // Send payment data to the backend
       const backendResponse = await axios.post(
-        'http://192.168.18.2:4050/payment/pay',
+        'https://reservationappserver.onrender.com/payment/pay',
         backendPaymentData,
         {
           headers: {
@@ -103,6 +103,9 @@ const PaymentScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('Backend Payment Error:', error);
       Alert.alert('Error', 'Payment failed. Please try again.');
+    }
+    finally{
+      navigation.navigate('HomeScreen')
     }
   };
 

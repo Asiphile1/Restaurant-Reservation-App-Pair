@@ -26,10 +26,11 @@ const RestaurantDetailsScreen = ({ route }) => {
   const fetchReservations = async () => {
     try {
       const response = await fetch(
-        `https://reservationappserver.onrender.com/restaurants/reservations?restaurantId=${restaurant._id}` // Use `_id` instead of `id`
+        `https://reservationappserver.onrender.com/restaurants/reservations?restaurantId=${restaurant._id}`
       );
       if (!response.ok) {
         throw new Error(`Failed to fetch reservations: ${response.statusText}`);
+        
       }
       const data = await response.json();
       setReservations(data);
@@ -114,6 +115,7 @@ const RestaurantDetailsScreen = ({ route }) => {
           <Text style={tw`text-gray-600 mt-4`}>Loading reservations...</Text>
         </View>
       ) : (
+        reservations ? 
         <FlatList
           data={reservations}
           keyExtractor={(item) => item._id.toString()}
@@ -140,6 +142,11 @@ const RestaurantDetailsScreen = ({ route }) => {
             </View>
           )}
         />
+        :
+        <View style={tw`flex-1 justify-center items-center`}>
+          <ActivityIndicator size="large" color="#1E88E5" />
+          <Text style={tw`text-gray-600 mt-4`}>No Reservations Found!</Text>
+        </View>
       )}
     </View>
   );

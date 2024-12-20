@@ -287,6 +287,8 @@ const ManageStores = () => {
 
   // Handle delete restaurant
   const handleDeleteRestaurant = async (id) => {
+    // const { id } = restaurants.body
+    console.log('id' , id)
     Alert.alert(
       'Confirm Delete',
       'Are you sure you want to delete this restaurant?',

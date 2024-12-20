@@ -161,7 +161,7 @@ const AdminStack = () => {
         options={{ title: 'Store Management' }}
       />
       <Stack.Screen
-        name="RestaurantDetails"
+        name="RestaurantDetailsScreen"
         component={RestaurantDetailsScreen}
         options={{ title: 'Restaurant Management' }}
       />
