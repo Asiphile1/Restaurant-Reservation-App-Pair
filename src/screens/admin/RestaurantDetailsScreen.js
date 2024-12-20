@@ -6,24 +6,27 @@ import {
   TouchableOpacity,
   Alert,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import tw from 'twrnc';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const RestaurantDetailsScreen = ({ route }) => {
-  const { restaurant } = route.params;
+  const { restaurant } = route.params || {}; // Ensure restaurant is not undefined
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch reservations for the selected restaurant
   useEffect(() => {
-    fetchReservations();
-  }, []);
+    if (restaurant) {
+      fetchReservations();
+    }
+  }, [restaurant]);
 
   const fetchReservations = async () => {
     try {
       const response = await fetch(
-        `https://reservationappserver.onrender.com/reservations?restaurantId=${restaurant._id}`
+        `https://reservationappserver.onrender.com/restaurants/reservations?restaurantId=${restaurant._id}` // Use `_id` instead of `id`
       );
       if (!response.ok) {
         throw new Error(`Failed to fetch reservations: ${response.statusText}`);
@@ -80,6 +83,14 @@ const RestaurantDetailsScreen = ({ route }) => {
     }
   };
 
+  if (!restaurant) {
+    return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <Text style={tw`text-lg text-gray-600`}>Restaurant not found.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={tw`flex-1 bg-gray-100 p-4`}>
       {/* Restaurant Details */}
@@ -99,7 +110,8 @@ const RestaurantDetailsScreen = ({ route }) => {
       <Text style={tw`text-xl font-semibold mb-4`}>Reservations</Text>
       {loading ? (
         <View style={tw`flex-1 justify-center items-center`}>
-          <Text style={tw`text-gray-600`}>Loading reservations...</Text>
+          <ActivityIndicator size="large" color="#1E88E5" />
+          <Text style={tw`text-gray-600 mt-4`}>Loading reservations...</Text>
         </View>
       ) : (
         <FlatList

@@ -1,342 +1,288 @@
-// import React, { useState } from 'react';
-// import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-// import PaystackWebView from 'react-native-paystack-webview'; // Correct import
-
-// const PaymentScreen = ({ route, navigation }) => {
-//   // Extract reservation details from the route params
-//   const { reservationDetails } = route.params;
-
-//   // State to manage payment status
-//   const [paymentSuccess, setPaymentSuccess] = useState(false);
-//   const [showPaystackModal, setShowPaystackModal] = useState(false); // State to control Paystack modal visibility
-
-//   // Paystack public key (replace with your actual public key)
-//   const PAYSTACK_PUBLIC_KEY = 'pk_test_17302dd9e2e7cefbd79e9509b2b217dc5428c2d2'; // Use your Paystack public key
-
-//   // Function to handle payment submission
-//   const handlePaymentSubmit = () => {
-//     // Trigger Paystack payment modal
-//     setShowPaystackModal(true);
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>Payment Details</Text>
-
-//       {/* Display Reservation Summary */}
-//       <View style={styles.summaryContainer}>
-//         <Text style={styles.summaryText}>
-//           <Text style={styles.boldText}>Restaurant:</Text>{' '}
-//           {reservationDetails.restaurantName}
-//         </Text>
-//         <Text style={styles.summaryText}>
-//           <Text style={styles.boldText}>Date:</Text> {reservationDetails.date}
-//         </Text>
-//         <Text style={styles.summaryText}>
-//           <Text style={styles.boldText}>Time:</Text> {reservationDetails.time}
-//         </Text>
-//         <Text style={styles.summaryText}>
-//           <Text style={styles.boldText}>Guests:</Text> {reservationDetails.guests}
-//         </Text>
-//         {reservationDetails.specialRequest && (
-//           <Text style={styles.summaryText}>
-//             <Text style={styles.boldText}>Special Request:</Text>{' '}
-//             {reservationDetails.specialRequest}
-//           </Text>
-//         )}
-//       </View>
-
-//       {/* Paystack Payment Integration */}
-//       {showPaystackModal && (
-//         <PaystackWebView
-//           paystackKey={PAYSTACK_PUBLIC_KEY}
-//           amount={20000} // Amount in kobo (e.g., 20000 = ₦200)
-//           billingEmail="asiphilexoli@gmail.com" // Customer's email
-//           billingName="Asiphile Xoli" // Customer's name
-//           activityIndicatorColor="green"
-//           currency="ZAR" // Currency (e.g., ZAR for South African Rand)
-//           onCancel={(e) => {
-//             setShowPaystackModal(false); // Hide Paystack modal
-//             Alert.alert('Payment Cancelled', 'You cancelled the payment.');
-//           }}
-//           onSuccess={(res) => {
-//             setShowPaystackModal(false); // Hide Paystack modal
-//             setPaymentSuccess(true);
-//             Alert.alert('Payment Successful', 'Your payment was successful!');
-//             navigation.navigate('HomeScreen', {
-//               message: 'Payment successful! Your reservation is confirmed.',
-//             });
-//           }}
-//           autoStart={true} // Automatically start payment when modal is shown
-//         />
-//       )}
-
-//       {/* Payment Button */}
-//       <TouchableOpacity
-//         style={styles.paymentButton}
-//         onPress={handlePaymentSubmit}
-//       >
-//         <Text style={styles.paymentButtonText}>Confirm Payment</Text>
-//       </TouchableOpacity>
-
-//       {/* Payment Success Message */}
-//       {paymentSuccess && (
-//         <Text style={styles.successMessage}>
-//           Payment successful! Your reservation is confirmed.
-//         </Text>
-//       )}
-//     </View>
-//   );
-// };
-
-// // Styles
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 20,
-//     backgroundColor: '#F5F5F5',
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     marginBottom: 20,
-//     textAlign: 'center',
-//   },
-//   summaryContainer: {
-//     backgroundColor: 'white',
-//     padding: 10,
-//     borderRadius: 10,
-//     marginBottom: 20,
-//   },
-//   summaryText: {
-//     fontSize: 16,
-//     marginBottom: 10,
-//   },
-//   boldText: {
-//     fontWeight: 'bold',
-//   },
-//   paymentButton: {
-//     backgroundColor: '#1E88E5',
-//     padding: 15,
-//     borderRadius: 10,
-//     alignItems: 'center',
-//     marginTop: 20,
-//   },
-//   paymentButtonText: {
-//     color: 'white',
-//     fontWeight: 'bold',
-//     fontSize: 16,
-//   },
-//   successMessage: {
-//     marginTop: 20,
-//     fontSize: 16,
-//     color: 'green',
-//     textAlign: 'center',
-//   },
-// });
-
-// export default PaymentScreen;
-
-import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  Platform 
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  SafeAreaView,
+  ScrollView,
 } from 'react-native';
-import PaystackWebView from 'react-native-paystack-webview';
+import { CreditCard, Calendar, Clock, Users, MessageSquare } from 'lucide-react-native';
+import { useSelector } from 'react-redux';
+import { Paystack, paystackProps } from 'react-native-paystack-webview';
+import axios from 'axios';
 
 const PaymentScreen = ({ route, navigation }) => {
-  // Extract reservation details from the route params
-  const { reservationDetails } = route.params;
-
-  // State management
+  // State to track payment process
   const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [showPaystackModal, setShowPaystackModal] = useState(false);
 
-  // Configuration
-  const PAYSTACK_PUBLIC_KEY = Platform.select({
-    ios: process.env.IOS_PAYSTACK_PUBLIC_KEY,
-    android: process.env.ANDROID_PAYSTACK_PUBLIC_KEY,
-    default: 'pk_test_placeholder_key'
-  });
+  // Safely extract reservation details
+  const reservationDetails = route?.params?.reservationDetails || {};
 
-  // Dynamic Fee Calculation
+  // Validate and sanitize reservation details
+  const safeReservationDetails = {
+    restaurantName: reservationDetails.restaurantName || 'Unknown Restaurant',
+    date: reservationDetails.date || '',
+    time: reservationDetails.time || '',
+    guests: parseInt(reservationDetails.guests || '1', 10),
+    specialRequest: reservationDetails.specialRequest || '',
+  };
+
+  // Get the user ID and token from Redux state
+  const userId = useSelector((state) => state.auth.user.id);
+  const token = useSelector((state) => state.auth.token);
+
+  // Paystack public key (replace with your actual public key)
+  const PAYSTACK_PUBLIC_KEY = 'pk_test_17302dd9e2e7cefbd79e9509b2b217dc5428c2d2';
+
+  // Reference for Paystack WebView
+  const paystackWebViewRef = useRef(paystackProps.PayStackRef);
+
+  // Dynamic Fee Calculation with safety checks
   const calculateReservationFee = useCallback(() => {
     const BASE_FEE = 200; // Base reservation fee
     const GUEST_MULTIPLIER = 50; // Additional fee per guest
+    const guests = Math.max(1, safeReservationDetails.guests); // Ensure at least 1 guest
 
-    const totalFee = BASE_FEE + (reservationDetails.guests * GUEST_MULTIPLIER);
-    return totalFee * 100; // Convert to kobo
-  }, [reservationDetails.guests]);
+    return BASE_FEE + guests * GUEST_MULTIPLIER;
+  }, [safeReservationDetails.guests]);
 
-  // Payment Submission Handler
-  const handlePaymentSubmit = () => {
-    // Validate reservation details before payment
-    if (!reservationDetails.restaurantName) {
-      Alert.alert('Error', 'Invalid reservation details');
-      return;
+  // Validate details before payment
+  useEffect(() => {
+    if (!safeReservationDetails.restaurantName) {
+      Alert.alert(
+        'Invalid Reservation',
+        'Please check your reservation details and try again.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     }
+  }, [safeReservationDetails.restaurantName, navigation]);
 
-    setShowPaystackModal(true);
+  // Handle payment success
+  const handlePaymentSuccess = async (response) => {
+    try {
+      // Log the Paystack response
+      console.log('Paystack Response:', response);
+
+      // Prepare payment data to send to the backend
+      const backendPaymentData = {
+        user: userId, // Use the user ID from Redux
+        booking: '614c3f5d7a3d7a0012345679', // Replace with actual booking ID
+        restaurant: '614c3f5d7a3d7a001234567a', // Replace with actual restaurant ID
+        amount: calculateReservationFee(),
+        paymentMethod: 'paystack', // Replace with actual payment method
+        transactionId: response.transactionRef, // Use Paystack's transaction reference
+      };
+
+      // Send payment data to the backend
+      const backendResponse = await axios.post(
+        'http://192.168.18.2:4050/payment/pay',
+        backendPaymentData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Use the token for authentication
+          },
+        }
+      );
+
+      // Log the backend response
+      console.log('Backend Response:', backendResponse.data);
+
+      // Handle successful backend response
+      if (backendResponse.status === 200) {
+        setPaymentSuccess(true);
+        Alert.alert(
+          'Payment Successful',
+          'Your reservation is confirmed!',
+          [{ text: 'OK', onPress: () => navigation.navigate('HomeScreen') }]
+        );
+      } else {
+        Alert.alert('Error', 'Payment failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Backend Payment Error:', error);
+      Alert.alert('Error', 'Payment failed. Please try again.');
+    }
   };
 
-  // Success Handler
-  const handlePaymentSuccess = (res) => {
-    setShowPaystackModal(false);
-    setPaymentSuccess(true);
-
-    // Log transaction details (you might want to send this to your backend)
-    console.log('Transaction Reference:', res.transactionRef);
-
-    Alert.alert(
-      'Payment Successful', 
-      'Your reservation is confirmed!',
-      [{ 
-        text: 'OK', 
-        onPress: () => navigation.navigate('HomeScreen', {
-          message: 'Payment successful! Your reservation is confirmed.'
-        }) 
-      }]
-    );
-  };
-
-  // Cancel Handler
+  // Handle payment cancel
   const handlePaymentCancel = () => {
-    setShowPaystackModal(false);
-    Alert.alert(
-      'Payment Cancelled', 
-      'You cancelled the payment process.',
-      [{ text: 'OK' }]
-    );
-  };
-
-  // Error Handler
-  const handlePaymentError = (error) => {
-    setShowPaystackModal(false);
-    console.error('Payment Error:', error);
-    Alert.alert(
-      'Payment Failed', 
-      'There was an issue processing your payment. Please try again.',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Payment Cancelled', 'You cancelled the payment process.');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Payment Details</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Reservation Payment</Text>
+        </View>
 
-      {/* Reservation Summary */}
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryText}>
-          <Text style={styles.boldText}>Restaurant:</Text>{' '}
-          {reservationDetails.restaurantName}
-        </Text>
-        <Text style={styles.summaryText}>
-          <Text style={styles.boldText}>Date:</Text> {reservationDetails.date}
-        </Text>
-        <Text style={styles.summaryText}>
-          <Text style={styles.boldText}>Time:</Text> {reservationDetails.time}
-        </Text>
-        <Text style={styles.summaryText}>
-          <Text style={styles.boldText}>Guests:</Text> {reservationDetails.guests}
-        </Text>
-        <Text style={styles.summaryText}>
-          <Text style={styles.boldText}>Total Fee:</Text> R{calculateReservationFee() / 100}
-        </Text>
-        {reservationDetails.specialRequest && (
-          <Text style={styles.summaryText}>
-            <Text style={styles.boldText}>Special Request:</Text>{' '}
-            {reservationDetails.specialRequest}
-          </Text>
-        )}
-      </View>
+        {/* Reservation Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <Text style={styles.restaurantName}>{safeReservationDetails.restaurantName}</Text>
+          </View>
 
-      {/* Paystack Payment Integration */}
-      {showPaystackModal && (
-        <PaystackWebView
+          <View style={styles.detailRow}>
+            <Calendar color="#1E88E5" size={24} />
+            <Text style={styles.detailText}>{safeReservationDetails.date}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Clock color="#4CAF50" size={24} />
+            <Text style={styles.detailText}>{safeReservationDetails.time}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Users color="#FF9800" size={24} />
+            <Text style={styles.detailText}>{safeReservationDetails.guests} Guests</Text>
+          </View>
+
+          {safeReservationDetails.specialRequest && (
+            <View style={styles.detailRow}>
+              <MessageSquare color="#9C27B0" size={24} />
+              <Text style={styles.detailText}>{safeReservationDetails.specialRequest}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Payment Summary */}
+        <View style={styles.paymentSummary}>
+          <View style={styles.paymentRow}>
+            <Text style={styles.paymentLabel}>Reservation Fee</Text>
+            <Text style={styles.paymentAmount}>R{calculateReservationFee().toFixed(2)}</Text>
+          </View>
+        </View>
+
+        {/* Paystack Payment Integration */}
+        <Paystack
           paystackKey={PAYSTACK_PUBLIC_KEY}
-          amount={calculateReservationFee()} 
-          billingEmail="user@example.com" // Replace with actual user email
-          billingName="User Name" // Replace with actual user name
-          activityIndicatorColor="green"
+          amount={calculateReservationFee()}
+          billingEmail="asiphilexoli@gmail.com" // Replace with user's email
+          billingName="Asiphile" // Replace with user's name
           currency="ZAR"
           onCancel={handlePaymentCancel}
           onSuccess={handlePaymentSuccess}
-          onError={handlePaymentError}
-          autoStart={true}
+          ref={paystackWebViewRef}
         />
-      )}
 
-      {/* Payment Button */}
-      <TouchableOpacity
-        style={styles.paymentButton}
-        onPress={handlePaymentSubmit}
-      >
-        <Text style={styles.paymentButtonText}>
-          Confirm Payment (R{calculateReservationFee() / 100})
-        </Text>
-      </TouchableOpacity>
+        {/* Payment Button */}
+        <TouchableOpacity
+          style={styles.paymentButton}
+          onPress={() => paystackWebViewRef.current.startTransaction()}
+        >
+          <CreditCard color="white" size={24} />
+          <Text style={styles.paymentButtonText}>Pay Now</Text>
+        </TouchableOpacity>
 
-      {/* Payment Success Message */}
-      {paymentSuccess && (
-        <Text style={styles.successMessage}>
-          Payment successful! Your reservation is confirmed.
-        </Text>
-      )}
-    </View>
+        {/* Payment Success Message */}
+        {paymentSuccess && (
+          <View style={styles.successContainer}>
+            <Text style={styles.successMessage}>Payment Successful!</Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F7F9FC',
+  },
+  scrollContainer: {
     padding: 20,
-    backgroundColor: '#F5F5F5',
+  },
+  header: {
+    marginBottom: 20,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#333',
   },
-  summaryContainer: {
+  summaryCard: {
     backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
+    borderRadius: 15,
+    padding: 20,
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  summaryText: {
+  summaryHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingBottom: 10,
+    marginBottom: 15,
+  },
+  restaurantName: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#1E88E5',
+    textAlign: 'center',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingLeft: 5,
+  },
+  detailText: {
+    marginLeft: 15,
     fontSize: 16,
+    color: '#666',
+  },
+  paymentSummary: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
-  boldText: {
-    fontWeight: 'bold',
+  paymentLabel: {
+    fontSize: 16,
+    color: '#333',
+  },
+  paymentAmount: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E88E5',
   },
   paymentButton: {
     backgroundColor: '#1E88E5',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
     marginTop: 20,
   },
   paymentButtonText: {
     color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '600',
+    fontSize: 18,
+    marginLeft: 10,
+  },
+  successContainer: {
+    marginTop: 20,
+    alignItems: 'center',
   },
   successMessage: {
-    marginTop: 20,
-    fontSize: 16,
-    color: 'green',
-    textAlign: 'center',
+    fontSize: 18,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
 });
 

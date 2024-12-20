@@ -58,7 +58,7 @@ const DashboardStack = () => {
       <Stack.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: 'Admin Profile' }}
+        options={{ title: '', headerShown: false }}
       />
       <Stack.Screen
         name="Settings"

@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ScrollView,
   Image,
-  Modal,
 } from 'react-native';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const ReservationsScreen = ({ route, navigation }) => {
   // Extract the reservation details from the route params
@@ -19,7 +18,7 @@ const ReservationsScreen = ({ route, navigation }) => {
     date: initialDate,
     guests: initialGuests,
     specialRequest: initialSpecialRequest,
-    restaurantImage: initialRestaurantImage, // Add restaurant image
+    restaurantImage: initialRestaurantImage,
   } = route.params || {};
 
   // State to hold the editable reservation details
@@ -27,20 +26,28 @@ const ReservationsScreen = ({ route, navigation }) => {
     restaurantName: initialRestaurantName || '',
     time: initialTime || '',
     date: initialDate || '',
-    guests: initialGuests || '',
+    guests: initialGuests ? initialGuests.toString() : '', // Ensure guests is a string
     specialRequest: initialSpecialRequest || '',
   });
 
   // State to manage input validation
   const [errors, setErrors] = useState({});
 
-  // State for Date Picker
-  // const [show, setShow] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // State for Date and Time Pickers
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date(initialDate || new Date()));
+  const [selectedTime, setSelectedTime] = useState(new Date(initialTime || new Date()));
 
-  // State for Time Picker
-  const [show, setShow] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  // useEffect to initialize selectedDate and selectedTime
+  useEffect(() => {
+    if (initialDate) {
+      setSelectedDate(new Date(initialDate));
+    }
+    if (initialTime) {
+      setSelectedTime(new Date(initialTime));
+    }
+  }, []);
 
   // Function to handle input changes
   const handleInputChange = (field, value) => {
@@ -48,12 +55,10 @@ const ReservationsScreen = ({ route, navigation }) => {
       ...reservationDetails,
       [field]: value,
     });
-
-    // Clear errors for the field when the user types
     if (errors[field]) {
       setErrors({
         ...errors,
-        [field]: '',
+        [field]: undefined,
       });
     }
   };
@@ -62,21 +67,17 @@ const ReservationsScreen = ({ route, navigation }) => {
   const validateInputs = () => {
     const newErrors = {};
 
-    if (!reservationDetails.restaurantName) {
-      newErrors.restaurantName = 'Restaurant name is required.';
+    if (!reservationDetails.date) {
+      newErrors.date = 'Reservation date is required.';
     }
 
     if (!reservationDetails.time) {
       newErrors.time = 'Reservation time is required.';
     }
 
-    if (!reservationDetails.date) {
-      newErrors.date = 'Reservation date is required.';
-    }
-
     if (!reservationDetails.guests) {
       newErrors.guests = 'Number of guests is required.';
-    } else if (isNaN(reservationDetails.guests) || reservationDetails.guests <= 0) {
+    } else if (isNaN(reservationDetails.guests) || parseInt(reservationDetails.guests, 10) <= 0) {
       newErrors.guests = 'Please enter a valid number of guests.';
     }
 
@@ -86,26 +87,23 @@ const ReservationsScreen = ({ route, navigation }) => {
   // Function to handle the reservation submission
   const handleReservationSubmit = () => {
     const validationErrors = validateInputs();
-
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    // Show confirmation alert
-    Alert.alert(
-      'Reservation Updated',
-      `You've updated your reservation at ${reservationDetails.restaurantName} for ${reservationDetails.date} at ${reservationDetails.time} with ${reservationDetails.guests} guests. Special Request: ${reservationDetails.specialRequest || 'None'}`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Navigate back to the previous screen
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    // Convert guests to a number
+    const guestsNumber = parseInt(reservationDetails.guests, 10);
+    const paymentPayload = {
+      restaurantName: reservationDetails.restaurantName,
+      date: reservationDetails.date,
+      time: reservationDetails.time,
+      guests: guestsNumber,
+      specialRequest: reservationDetails.specialRequest,
+    };
+
+    // Navigate to PaymentScreen with the paymentPayload
+    navigation.navigate('PaymentScreen', { reservationDetails: paymentPayload });
   };
 
   // Function to handle date selection
@@ -113,9 +111,9 @@ const ReservationsScreen = ({ route, navigation }) => {
     setSelectedDate(date);
     setReservationDetails({
       ...reservationDetails,
-      date: date.toISOString().split('T')[0], // Format date as YYYY-MM-DD
+      date: date.toISOString().split('T')[0],
     });
-    setShow(false);
+    setDatePickerVisibility(false);
   };
 
   // Function to handle time selection
@@ -123,9 +121,9 @@ const ReservationsScreen = ({ route, navigation }) => {
     setSelectedTime(time);
     setReservationDetails({
       ...reservationDetails,
-      time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // Format time as HH:MM AM/PM
+      time: time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     });
-    setShow(false);
+    setTimePickerVisibility(false);
   };
 
   return (
@@ -139,21 +137,17 @@ const ReservationsScreen = ({ route, navigation }) => {
         />
       )}
 
-      <Text style={styles.title}>Edit Reservation</Text>
+      <Text style={styles.title}>Custom Reservation</Text>
 
       {/* Restaurant Name Input */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Restaurant Name</Text>
         <TextInput
-          style={[styles.input, errors.restaurantName && styles.inputError]}
+          style={styles.input}
           value={reservationDetails.restaurantName}
-          readOnly
-          onChangeText={(text) => handleInputChange('restaurantName', text)}
+          disabled
           placeholder="Enter restaurant name"
         />
-        {errors.restaurantName ? (
-          <Text style={styles.errorText}>{errors.restaurantName}</Text>
-        ) : null}
       </View>
 
       {/* Reservation Date Input */}
@@ -161,13 +155,13 @@ const ReservationsScreen = ({ route, navigation }) => {
         <Text style={styles.label}>Reservation Date</Text>
         <TouchableOpacity
           style={[styles.input, errors.date && styles.inputError]}
-          onPress={() => setShow(true)}
+          onPress={() => setDatePickerVisibility(true)}
         >
           <Text>{reservationDetails.date || 'Select a date'}</Text>
         </TouchableOpacity>
-        {errors.date ? (
+        {errors.date && (
           <Text style={styles.errorText}>{errors.date}</Text>
-        ) : null}
+        )}
       </View>
 
       {/* Reservation Time Input */}
@@ -175,13 +169,13 @@ const ReservationsScreen = ({ route, navigation }) => {
         <Text style={styles.label}>Reservation Time</Text>
         <TouchableOpacity
           style={[styles.input, errors.time && styles.inputError]}
-          onPress={() => setShow(true)}
+          onPress={() => setTimePickerVisibility(true)}
         >
           <Text>{reservationDetails.time || 'Select a time'}</Text>
         </TouchableOpacity>
-        {errors.time ? (
+        {errors.time && (
           <Text style={styles.errorText}>{errors.time}</Text>
-        ) : null}
+        )}
       </View>
 
       {/* Number of Guests Input */}
@@ -194,9 +188,9 @@ const ReservationsScreen = ({ route, navigation }) => {
           placeholder="Enter number of guests"
           keyboardType="numeric"
         />
-        {errors.guests ? (
+        {errors.guests && (
           <Text style={styles.errorText}>{errors.guests}</Text>
-        ) : null}
+        )}
       </View>
 
       {/* Special Request Input */}
@@ -217,8 +211,22 @@ const ReservationsScreen = ({ route, navigation }) => {
         style={styles.submitButton}
         onPress={handleReservationSubmit}
       >
-        <Text style={styles.submitButtonText}>Update Reservation</Text>
+        <Text style={styles.submitButtonText}>Make Reservation</Text>
       </TouchableOpacity>
+
+      {/* Date and Time Pickers */}
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleDateChange}
+        onCancel={() => setDatePickerVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isTimePickerVisible}
+        mode="time"
+        onConfirm={handleTimeChange}
+        onCancel={() => setTimePickerVisibility(false)}
+      />
     </ScrollView>
   );
 };
@@ -228,35 +236,46 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F9F9F9', // Light background
   },
   restaurantImage: {
     width: '100%',
     height: 200,
-    borderRadius: 10,
+    borderRadius: 15, // Rounded corners
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // Shadow for Android
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#333', // Dark text
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    marginBottom: 5,
-    color: '#333',
+    marginBottom: 8,
+    color: '#555', // Slightly muted text
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
+    borderColor: '#ddd', // Light border
+    borderRadius: 10, // Rounded corners
+    padding: 15,
     fontSize: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#fff', // White background
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2, // Shadow for Android
   },
   inputError: {
     borderColor: 'red',
@@ -267,31 +286,20 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   submitButton: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#1E88E5', // Primary color
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 10, // Rounded corners
     alignItems: 'center',
+    shadowColor: '#1E88E5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4, // Shadow for Android
   },
   submitButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalButton: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: '#1E88E5',
-    borderRadius: 5,
-  },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 16,
+    fontSize: 18,
   },
 });
 

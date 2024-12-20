@@ -59,7 +59,7 @@ const RestaurantDetailModal = ({ restaurant, visible, onClose, onReserve, naviga
             <View style={styles.detailRow}>
               <Ionicons name="pricetag" size={20} color="#777" />
               <Text style={styles.detailText}>
-                Average Price: €{restaurant.averagePrice}
+                Price: {restaurant.averagePrice}
               </Text>
             </View>
             <View style={styles.detailRow}>
@@ -76,7 +76,6 @@ const RestaurantDetailModal = ({ restaurant, visible, onClose, onReserve, naviga
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Select Reservation Time</Text>
           <View style={styles.timeSlotsContainer}>
             {restaurant.reservationSlots?.map((slot, index) => (
               <TouchableOpacity
@@ -112,7 +111,7 @@ const HomeScreen = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurants, setRestaurants] = useState([]); // Ensure it's initialized as an empty array
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -121,29 +120,39 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchRestaurants = async () => {
       try {
-        const response = await axios.get(
-          'https://reservationappserver.onrender.com/restaurants'
-        );
-        setRestaurants(response.data);
+        const response = await axios.get('https://reservationappserver.onrender.com/restaurants');
+        // Extract the `restaurants` array from the API response
+        setRestaurants(response.data.restaurants || []);
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchRestaurants();
   }, []);
-
+  
   const filteredRestaurants = useMemo(() => {
+    // console.log('my restaurants111', restaurants);
+    if (!restaurants || !Array.isArray(restaurants)) {
+      // console.log('my restaurants222', restaurants);
+      return []; // Return an empty array if restaurants is undefined or not an array
+    }
+  
+    // console.log('my restaurants333', restaurants);
     return restaurants.filter((restaurant) => {
       const matchesSearch =
         restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
-
+  
       const matchesCategory =
-        !selectedCategory || restaurant.categories?.includes(selectedCategory);
-
+        !selectedCategory ||
+        (restaurant.categories &&
+          restaurant.categories.some(
+            (category) => category.toLowerCase().trim() === selectedCategory.toLowerCase().trim()
+          ));
+  
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, selectedCategory, restaurants]);
@@ -222,35 +231,39 @@ const HomeScreen = ({ navigation }) => {
       </ScrollView>
 
       <ScrollView contentContainerStyle={styles.restaurantsContainer}>
-        {filteredRestaurants.map((restaurant, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.restaurantCard}
-            onPress={() => handleRestaurantPress(restaurant)}
-          >
-            <Image
-              source={{ uri: restaurant.image }}
-              style={styles.restaurantImage}
-            />
-            <View style={styles.restaurantInfo}>
-              <Text style={styles.restaurantName}>{restaurant.name}</Text>
-              <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
-              <View style={styles.restaurantTags}>
-                {restaurant.tags?.map((tag, index) => (
-                  <Text key={index} style={styles.tagBadge}>
-                    {tag}
+        {filteredRestaurants.length === 0 ? (
+          <Text style={styles.noResultsText}>No restaurants found.</Text>
+        ) : (
+          filteredRestaurants.map((restaurant, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.restaurantCard}
+              onPress={() => handleRestaurantPress(restaurant)}
+            >
+              <Image
+                source={{ uri: restaurant.image }}
+                style={styles.restaurantImage}
+              />
+              <View style={styles.restaurantInfo}>
+                <Text style={styles.restaurantName}>{restaurant.name}</Text>
+                <Text style={styles.restaurantCuisine}>{restaurant.cuisine}</Text>
+                <View style={styles.restaurantTags}>
+                  {restaurant.tags?.map((tag, index) => (
+                    <Text key={index} style={styles.tagBadge}>
+                      {tag}
+                    </Text>
+                  ))}
+                </View>
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>
+                    {restaurant.averageRating} ({restaurant.totalReviews})
                   </Text>
-                ))}
+                </View>
               </View>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>
-                  {restaurant.averageRating} ({restaurant.totalReviews})
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       {selectedRestaurant && (
@@ -269,7 +282,7 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingVertical: 40,
+    paddingVertical: 20,
     backgroundColor: '#F5F5F5',
   },
   searchContainer: {
@@ -293,7 +306,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   categoriesContainer: {
-    paddingVertical: 20,
+    paddingBottom: 20,
     paddingHorizontal: 10,
   },
   categoryChip: {
@@ -312,8 +325,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   restaurantsContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   restaurantCard: {
     flexDirection: 'row',
@@ -374,14 +387,15 @@ const styles = StyleSheet.create({
     width: '90%',
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
-    padding: 20,
+    padding: 15,
   },
   closeButton: {
     position: 'absolute',
     alignSelf: 'flex-end',
-    backgroundColor: '#FF5252',
+    backgroundColor: '#00000099',
     borderRadius: 50,
     padding: 5,
+    zIndex: 1,
   },
   modalImage: {
     width: '100%',
@@ -416,11 +430,6 @@ const styles = StyleSheet.create({
   detailText: {
     marginLeft: 10,
     color: '#333',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
   },
   timeSlotsContainer: {
     flexDirection: 'row',
@@ -464,6 +473,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  noResultsText: {
+    textAlign: 'center',
+    color: '#777',
+    fontSize: 16,
   },
 });
 
