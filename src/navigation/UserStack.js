@@ -74,7 +74,7 @@ const UserStack = () => (
     initialRouteName="HomeTab" // Default initial screen
     screenOptions={({ route }) => ({
       tabBarIcon: ({ color, size }) => renderTabIcon(route.name, color, size),
-      tabBarActiveTintColor: 'tomato', // Highlighted color for active tab
+      tabBarActiveTintColor: '#4F46E5', // Highlighted color for active tab
       tabBarInactiveTintColor: 'gray', // Color for inactive tabs
       tabBarStyle: {
         elevation: 5, // Adds shadow on Android

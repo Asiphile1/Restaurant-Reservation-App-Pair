@@ -492,7 +492,7 @@ const AppNavigator = () => (
     <Stack.Screen
       name="SignUp"
       component={SignupScreen}
-      options={{ title: 'Create Account' }}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="AdminStack"

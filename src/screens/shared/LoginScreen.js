@@ -1,142 +1,4 @@
-// import React, { useState } from 'react';
-// import {
-//   SafeAreaView,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   Alert,
-//   ActivityIndicator,
-//   Image,
-//   StatusBar,
-// } from 'react-native';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { login } from '../../state/slices/authSlice';
-// import tw from 'twrnc';
-
-// const LoginScreen = ({ navigation }) => {
-//   const dispatch = useDispatch();
-//   const { loading, error } = useSelector((state) => state.auth);
-
-//   const [email, setEmail] = useState('');
-//   const [password, setPassword] = useState('');
-
-//   const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
-
-//   // const handleLogin = async () => {
-//   //   if (!email || !password) {
-//   //     Alert.alert('Validation Error', 'Please enter both email and password');
-//   //     return;
-//   //   }
-//   //   if (!isValidEmail(email)) {
-//   //     Alert.alert('Validation Error', 'Please enter a valid email address');
-//   //     return;
-//   //   }
-
-//   //   try {
-//   //     const response = await dispatch(login({ email, password }));
-//   //     if (response.payload) {
-//   //       const { role } = response.payload.user; // Assuming role is returned from backend
-//   //       if (role === 'admin') {
-//   //         navigation.replace('AdminStack');
-//   //       } else {
-//   //         navigation.replace('UserStack');
-//   //       }
-//   //     }
-//   //   } catch (error) {
-//   //     console.error('Login Error:', error);
-//   //     Alert.alert('Login Failed', error.message || 'Invalid credentials');
-//   //   }
-//   // };
-
-//   const handleLogin = async () => {
-//     if (!email || !password) {
-//       Alert.alert('Validation Error', 'Please enter both email and password');
-//       return;
-//     }
-
-//         if (!isValidEmail(email)) {
-//       Alert.alert('Validation Error', 'Please enter a valid email address');
-//       return;
-//     }
-  
-//     try {
-//       const response = await dispatch(login({ email, password }));
-  
-//       // Debug response
-//       console.log('Login Response:', response.payload);
-  
-//       if (response.payload?.role) {
-//         const { role } = response.payload;
-  
-//         if (role === 'admin') {
-//           navigation.replace('AdminStack');
-//         } else {
-//           navigation.replace('UserStack');
-//         }
-//       } else {
-//         throw new Error('Invalid response from server.');
-//       }
-//     } catch (error) {
-//       console.error('Login Error:', error);
-//       Alert.alert('Login Failed', error.message || 'Invalid credentials');
-//     }
-//   };
-  
-
-//   return (
-//     <SafeAreaView style={tw`flex-1 justify-center items-center bg-white px-4`}>
-//       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-//       <Image
-//         source={require('../../../assets/dinner.jpg')}
-//         style={tw`w-90 h-90 mb-6 rounded-[100px]`}
-//         accessibilityLabel="App Logo"
-//       />
-
-//       <Text style={tw`text-3xl font-semibold mb-6`}>Login</Text>
-
-//       <TextInput
-//         value={email}
-//         onChangeText={setEmail}
-//         placeholder="Email"
-//         keyboardType="email-address"
-//         style={tw`w-full p-3 mb-4 border border-gray-300 rounded-md text-base`}
-//         accessibilityLabel="Email Input"
-//       />
-
-//       <TextInput
-//         value={password}
-//         onChangeText={setPassword}
-//         placeholder="Password"
-//         secureTextEntry
-//         style={tw`w-full p-3 mb-4 border border-gray-300 rounded-md text-base`}
-//         accessibilityLabel="Password Input"
-//       />
-
-//       <TouchableOpacity
-//         onPress={handleLogin}
-//         style={tw`w-full p-4 bg-green-600 rounded-md mb-4`}
-//         disabled={loading}
-//       >
-//         <Text style={tw`text-white text-center text-lg`}>
-//           {loading ? 'Logging in...' : 'Login'}
-//         </Text>
-//       </TouchableOpacity>
-
-//       {loading && <ActivityIndicator size="small" color="#0000ff" style={tw`mb-4`} />}
-
-//       {error && <Text style={tw`text-red-500 mb-4`}>{error}</Text>}
-
-//       <TouchableOpacity onPress={() => navigation.replace('SignUp')} style={tw`mt-6`}>
-//         <Text style={tw`text-blue-600 text-base`}>No account? Sign up here</Text>
-//       </TouchableOpacity>
-//     </SafeAreaView>
-//   );
-// };
-
-// export default LoginScreen;
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
   Text,
@@ -144,50 +6,72 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Image,
   StatusBar,
+  Animated,
+  View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../../state/slices/authSlice';
+import { LinearGradient } from 'expo-linear-gradient';
 import tw from 'twrnc';
 
 const LoginScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Text input state
+  const [credentials, setCredentials] = useState({
+    email: '',
+    password: ''
+  });
 
-  const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(formOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, formOpacity]);
+
+  const handleTextChange = (field, value) => {
+    setCredentials(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const handleLogin = async () => {
+    const { email, password } = credentials;
+    
     if (!email || !password) {
       Alert.alert('Validation Error', 'Please enter both email and password');
       return;
     }
 
-    if (!isValidEmail(email)) {
-      Alert.alert('Validation Error', 'Please enter a valid email address');
-      return;
-    }
-
     try {
-      const response = await dispatch(login({ email, password }));
-
-      // Check if the login was successful
-      if (response.payload && response.payload.token) {
-
-        
-        const { role } = response.payload.user
-
-        // Navigate based on role
-        if (role === 'admin') {
-          navigation.replace('AdminStack');
-        } else {
-          navigation.replace('UserStack');
-        }
-      } else {
-        throw new Error('Invalid response from server.');
+      const response = await dispatch(login({ email, password })).unwrap();
+      if (response?.token) {
+        navigation.replace(response.user.role === 'admin' ? 'AdminStack' : 'UserStack');
       }
     } catch (error) {
       console.error('Login Error:', error);
@@ -196,53 +80,74 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={tw`flex-1 justify-center items-center bg-white px-4`}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <LinearGradient colors={['#444', '#444']} style={tw`flex-1`}>
+      <SafeAreaView style={tw`flex-1 justify-center items-center px-4`}>
+        <StatusBar barStyle="light-content" backgroundColor="#444" />
 
-      <Image
-        source={require('../../../assets/dinner.jpg')}
-        style={tw`w-90 h-90 mb-6 rounded-[100px]`}
-        accessibilityLabel="App Logo"
-      />
+        <Animated.View style={[
+          tw`items-center`,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}>
+          <Text style={tw`text-6xl mb-2`}>🍽️</Text>
+          <Text style={tw`text-white text-3xl font-bold tracking-wider mb-2`}>
+            ZestyReserve
+          </Text>
+          <Text style={tw`text-white/80 text-sm mb-8`}>
+            Smart Booking Solution ✨
+          </Text>
+        </Animated.View>
 
-      <Text style={tw`text-3xl font-semibold mb-6`}>Login</Text>
+        <Animated.View style={[tw`w-full`, { opacity: formOpacity }]}>
+          <View style={tw`w-full mb-4`}>
+            <TextInput
+              value={credentials.email}
+              onChangeText={(text) => handleTextChange('email', text)}
+              placeholder="Email 📧"
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              keyboardType="email-address"
+              style={tw`w-full p-4 border border-white/30 rounded-xl text-white bg-white/10`}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
 
-      <TextInput
-        value={email}
-        onChangeText={setEmail}
-        placeholder="Email"
-        keyboardType="email-address"
-        style={tw`w-full p-3 mb-4 border border-gray-300 rounded-md text-base`}
-        accessibilityLabel="Email Input"
-      />
+          <View style={tw`w-full mb-4`}>
+            <TextInput
+              value={credentials.password}
+              onChangeText={(text) => handleTextChange('password', text)}
+              placeholder="Password 🔐"
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              secureTextEntry
+              style={tw`w-full p-4 border border-white/30 rounded-xl text-white bg-white/10`}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
 
-      <TextInput
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Password"
-        secureTextEntry
-        style={tw`w-full p-3 mb-4 border border-gray-300 rounded-md text-base`}
-        accessibilityLabel="Password Input"
-      />
+          <TouchableOpacity
+            onPress={handleLogin}
+            style={tw`w-full p-4 bg-white rounded-xl mb-4`}
+            disabled={loading}
+          >
+            <Text style={tw`text-indigo-600 text-center text-lg font-semibold`}>
+              {loading ? '⌛ Logging in...' : '🚀 Login'}
+            </Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity
-        onPress={handleLogin}
-        style={tw`w-full p-4 bg-green-600 rounded-md mb-4`}
-        disabled={loading}
-      >
-        <Text style={tw`text-white text-center text-lg`}>
-          {loading ? 'Logging in...' : 'Login'}
-        </Text>
-      </TouchableOpacity>
+          {loading && <ActivityIndicator size="small" color="#ffffff" style={tw`mb-4`} />}
+          {error && <Text style={tw`text-red-300 mb-4 text-center`}>❌ {error}</Text>}
 
-      {loading && <ActivityIndicator size="small" color="#0000ff" style={tw`mb-4`} />}
-
-      {error && <Text style={tw`text-red-500 mb-4`}>{error}</Text>}
-
-      <TouchableOpacity onPress={() => navigation.replace('SignUp')} style={tw`mt-6`}>
-        <Text style={tw`text-blue-600 text-base`}>No account? Sign up here</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+          <TouchableOpacity onPress={() => navigation.replace('SignUp')} style={tw`mt-6`}>
+            <Text style={tw`text-white/90 text-base text-center`}>
+              New here? Sign up ✍️
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 

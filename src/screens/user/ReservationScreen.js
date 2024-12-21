@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   submitButton: {
-    backgroundColor: '#1E88E5', // Primary color
+    backgroundColor: '#444', // Primary color
     padding: 15,
     borderRadius: 10, // Rounded corners
     alignItems: 'center',

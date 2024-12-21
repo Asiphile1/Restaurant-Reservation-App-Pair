@@ -18,9 +18,16 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout, selectToken } from '../../state/slices/authSlice';
 import * as ImagePicker from 'react-native-image-picker';
 import { Feather } from '@expo/vector-icons';
+import * as yup from 'yup';
+
+// Validation schema for profile updates
+const profileSchema = yup.object().shape({
+  fullNames: yup.string().required('Full names are required'),
+  phone: yup.string().required('Phone number is required'),
+  address: yup.string().required('Address is required'),
+});
 
 const ProfileScreen = ({ navigation }) => {
-  // State management
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,12 +40,11 @@ const ProfileScreen = ({ navigation }) => {
     address: '',
   });
 
-  // Redux hooks
   const token = useSelector(selectToken);
   const dispatch = useDispatch();
 
   // Fetch profile data
-  const fetchProfile = async (retries = 3) => {
+  const fetchProfile = async () => {
     try {
       const response = await axios.get('https://reservationappserver.onrender.com/auth/profile', {
         headers: {
@@ -56,13 +62,6 @@ const ProfileScreen = ({ navigation }) => {
       setError(null);
     } catch (err) {
       console.error('Error fetching profile:', err);
-
-      if (retries > 0) {
-        console.log(`Retrying... (${retries} attempts left)`);
-        fetchProfile(retries - 1);
-        return;
-      }
-
       setError('Failed to load profile data');
       Alert.alert('Error', 'Unable to load profile data. Please try again later.');
     } finally {
@@ -70,7 +69,6 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
-  // Component mount effect
   useEffect(() => {
     if (token) {
       fetchProfile();
@@ -156,12 +154,9 @@ const ProfileScreen = ({ navigation }) => {
 
   // Profile update handler
   const handleUpdateProfile = async () => {
-    if (!editedProfile.fullNames || !editedProfile.phone || !editedProfile.address) {
-      Alert.alert('Error', 'Please fill in all fields.');
-      return;
-    }
-
     try {
+      await profileSchema.validate(editedProfile, { abortEarly: false });
+
       const response = await axios.put(
         'https://reservationappserver.onrender.com/auth/profile',
         editedProfile,
@@ -176,8 +171,13 @@ const ProfileScreen = ({ navigation }) => {
       setProfile(response.data.user);
       setEditModalVisible(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again later.');
+      if (error.name === 'ValidationError') {
+        const errorMessage = error.errors.join('\n');
+        Alert.alert('Validation Error', errorMessage);
+      } else {
+        console.error('Error updating profile:', error);
+        Alert.alert('Error', 'Failed to update profile. Please try again later.');
+      }
     }
   };
 
@@ -214,22 +214,22 @@ const ProfileScreen = ({ navigation }) => {
       <View style={tw`flex-1 justify-end bg-black bg-opacity-50`}>
         <View style={tw`bg-white p-6 rounded-t-2xl`}>
           <Text style={tw`text-xl font-bold text-center mb-4`}>Choose Profile Picture</Text>
-          <TouchableOpacity 
-            onPress={handleSelectProfilePicture} 
+          <TouchableOpacity
+            onPress={handleSelectProfilePicture}
             style={tw`flex-row items-center p-4 bg-gray-100 rounded-lg mb-3`}
           >
             <Feather name="image" size={24} color="black" style={tw`mr-3`} />
             <Text style={tw`text-base`}>Choose from Gallery</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleTakePhoto} 
+          <TouchableOpacity
+            onPress={handleTakePhoto}
             style={tw`flex-row items-center p-4 bg-gray-100 rounded-lg`}
           >
             <Feather name="camera" size={24} color="black" style={tw`mr-3`} />
             <Text style={tw`text-base`}>Take a Photo</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setImageOptionsVisible(false)} 
+          <TouchableOpacity
+            onPress={() => setImageOptionsVisible(false)}
             style={tw`mt-4 p-4 bg-red-500 rounded-lg`}
           >
             <Text style={tw`text-white text-center font-bold`}>Cancel</Text>
@@ -242,8 +242,8 @@ const ProfileScreen = ({ navigation }) => {
   // Loading state
   if (loading) {
     return (
-      <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={tw`flex-1 justify-center items-center`}>
-        <ActivityIndicator size="large" color="white" />
+      <LinearGradient colors={['#999', '#999']} style={tw`flex-1 justify-center items-center`}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={tw`mt-4 text-white`}>Loading profile...</Text>
       </LinearGradient>
     );
@@ -252,13 +252,13 @@ const ProfileScreen = ({ navigation }) => {
   // Error state
   if (error) {
     return (
-      <LinearGradient colors={['#4c669f', '#3b5998', '#192f6a']} style={tw`flex-1 justify-center items-center p-4`}>
+      <LinearGradient colors={['#999', '#999']} style={tw`flex-1 justify-center items-center p-4`}>
         <Text style={tw`text-lg text-white mb-4 text-center`}>{error}</Text>
-        <TouchableOpacity 
-          onPress={fetchProfile} 
+        <TouchableOpacity
+          onPress={fetchProfile}
           style={tw`bg-white px-6 py-3 rounded-full`}
         >
-          <Text style={tw`text-blue-600 font-bold`}>Retry</Text>
+          <Text style={tw`text-indigo-600 font-bold`}>Retry</Text>
         </TouchableOpacity>
       </LinearGradient>
     );
@@ -268,13 +268,13 @@ const ProfileScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={tw`flex-1 bg-gray-50`}>
       <ScrollView>
-        <LinearGradient 
-          colors={['#4c669f', '#3b5998', '#192f6a']} 
-          style={tw`pb-8 pt-25 rounded-b-3xl`}
+        <LinearGradient
+          colors={['#999', '#999']}
+          style={tw`pb-8 rounded-b-3xl`}
         >
-          <TouchableOpacity 
-            onPress={() => setImageOptionsVisible(true)} 
-            style={tw`self-center mb-4 relative`}
+          <TouchableOpacity
+            onPress={() => setImageOptionsVisible(true)}
+            style={tw`self-center mb-4 pt-20 relative`}
           >
             {profilePicture ? (
               <Image
@@ -282,13 +282,13 @@ const ProfileScreen = ({ navigation }) => {
                 style={tw`w-32 h-32 rounded-full border-4 border-white`}
               />
             ) : (
-              <View style={tw`w-32 h-32 rounded-full bg-blue-500 items-center justify-center`}>
+              <View style={tw`w-32 h-32 rounded-full bg-indigo-500 items-center justify-center`}>
                 <Text style={tw`text-5xl text-white font-bold`}>
                   {profile.fullNames.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
-            <View style={tw`absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full`}>
+            <View style={tw`absolute bottom-0 right-0 bg-indigo-500 p-2 rounded-full`}>
               <Feather name="camera" size={20} color="white" />
             </View>
           </TouchableOpacity>
@@ -305,8 +305,8 @@ const ProfileScreen = ({ navigation }) => {
               { label: 'Phone', value: profile.phone },
               { label: 'Address', value: profile.address }
             ].map((detail, index) => (
-              <View 
-                key={index} 
+              <View
+                key={index}
                 style={tw`flex-row justify-between py-3 ${index < 3 ? 'border-b border-gray-200' : ''}`}
               >
                 <Text style={tw`text-gray-600`}>{detail.label}</Text>
@@ -315,22 +315,22 @@ const ProfileScreen = ({ navigation }) => {
             ))}
           </View>
 
-          <TouchableOpacity 
-            onPress={() => setEditModalVisible(true)} 
-            style={tw`bg-blue-500 px-6 py-3 rounded-full mb-4`}
+          <TouchableOpacity
+            onPress={() => setEditModalVisible(true)}
+            style={tw`bg-indigo-500 px-6 py-3 rounded-full mb-4`}
           >
             <Text style={tw`text-white text-center font-bold`}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            onPress={handleLogout} 
+          <TouchableOpacity
+            onPress={handleLogout}
             style={tw`bg-red-500 px-6 py-3 rounded-full`}
           >
             <Text style={tw`text-white text-center font-bold`}>Logout</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Edit Profile Modal (Kept exactly the same as original) */}
+        {/* Edit Profile Modal */}
         <Modal
           animationType="slide"
           transparent={false}
@@ -372,7 +372,7 @@ const ProfileScreen = ({ navigation }) => {
 
             <TouchableOpacity
               onPress={handleUpdateProfile}
-              style={tw`bg-blue-500 p-4 rounded-lg shadow-lg`}
+              style={tw`bg-indigo-500 p-4 rounded-lg shadow-lg`}
             >
               <Text style={tw`text-white text-center font-medium`}>Save</Text>
             </TouchableOpacity>

@@ -1,356 +1,4 @@
-// // import React, { useState, useCallback } from 'react';
-// // import {
-// //   View,
-// //   TextInput,
-// //   Text,
-// //   TouchableOpacity,
-// //   ActivityIndicator,
-// //   ScrollView,
-// //   Alert,
-// //   KeyboardAvoidingView,
-// //   Platform,
-// //   TouchableWithoutFeedback,
-// //   Keyboard,
-// // } from 'react-native';
-// // import tw from 'twrnc';
-// // import { useDispatch, useSelector } from 'react-redux';
-// // import { signup } from '../../state/slices/authSlice';
-
-// // const ValidationUtils = {
-// //   validateEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase()),
-// //   validatePhone: (phone) => /^(\+\d{1,3}[- ]?)?\d{10}$/.test(phone.replace(/[\s()-]/g, '')),
-// //   validatePassword: (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password),
-// //   sanitizeInput: (input) => input.replace(/[<>]/g, ''), // No trimming here
-// // };
-
-// // const SignupScreen = ({ navigation }) => {
-// //   const dispatch = useDispatch();
-// //   const { loading, error } = useSelector((state) => state.auth);
-
-// //   const [formData, setFormData] = useState({
-// //     fullNames: '',
-// //     phone: '',
-// //     address: '',
-// //     email: '',
-// //     password: '',
-// //     confirmPassword: '',
-// //   });
-
-// //   const [errors, setErrors] = useState({});
-// //   const [showPassword, setShowPassword] = useState(false);
-
-// //   const handleChange = useCallback(
-// //     (name, value) => {
-// //       setFormData((prev) => ({
-// //         ...prev,
-// //         [name]: name === 'email' || name === 'phone' ? value.trim() : value, // Allow spaces for other fields
-// //       }));
-
-// //       if (errors[name]) {
-// //         setErrors((prev) => {
-// //           const newErrors = { ...prev };
-// //           delete newErrors[name];
-// //           return newErrors;
-// //         });
-// //       }
-// //     },
-// //     [errors]
-// //   );
-
-// //   const validateForm = useCallback(() => {
-// //     const sanitizedData = { ...formData };
-// //     sanitizedData.email = ValidationUtils.sanitizeInput(sanitizedData.email);
-// //     sanitizedData.phone = ValidationUtils.sanitizeInput(sanitizedData.phone);
-
-// //     const newErrors = {};
-
-// //     Object.keys(sanitizedData).forEach((key) => {
-// //       if (!sanitizedData[key].trim()) {
-// //         newErrors[key] = `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
-// //       }
-// //     });
-
-// //     if (sanitizedData.email && !ValidationUtils.validateEmail(sanitizedData.email)) {
-// //       newErrors.email = 'Invalid email format';
-// //     }
-
-// //     if (sanitizedData.phone && !ValidationUtils.validatePhone(sanitizedData.phone)) {
-// //       newErrors.phone = 'Invalid phone number format';
-// //     }
-
-// //     if (sanitizedData.password && !ValidationUtils.validatePassword(sanitizedData.password)) {
-// //       newErrors.password = 'Password must be strong (8+ chars, uppercase, number, special char)';
-// //     }
-
-// //     if (sanitizedData.password !== sanitizedData.confirmPassword) {
-// //       newErrors.confirmPassword = 'Passwords do not match';
-// //     }
-
-// //     setErrors(newErrors);
-// //     return Object.keys(newErrors).length === 0;
-// //   }, [formData]);
-
-// //   const handleSignup = useCallback(async () => {
-// //     if (!validateForm()) {
-// //       Alert.alert('Validation Error', 'Please correct the highlighted errors.');
-// //       return;
-// //     }
-
-// //     console.log('Form Data:', formData);
-
-// //     try {
-// //       const { confirmPassword, ...submitData } = formData;
-// //       await dispatch(signup({ ...submitData, url: 'https://reservationappserver.onrender.com/auth/register' })).unwrap();
-// //       Alert.alert('Success', 'Account created successfully!', [
-// //         { text: 'OK', onPress: () => navigation.replace('Login') },
-// //       ]);
-// //     } catch (err) {
-// //       console.error('Signup error:', err);
-// //       Alert.alert('Error', err.message || 'Registration failed. Please try again.');
-// //     }
-// //   }, [formData, dispatch, navigation, validateForm]);
-
-// //   const getInputStyle = (fieldName) => [
-// //     tw`w-full p-4 mb-2 border rounded-md`,
-// //     errors[fieldName] ? tw`border-red-500` : tw`border-gray-300`,
-// //   ];
-
-// //   return (
-// //     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw`flex-1`}>
-// //       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-// //         <ScrollView contentContainerStyle={tw`flex-grow px-6 justify-center`} keyboardShouldPersistTaps="handled">
-// //           <Text style={tw`text-3xl font-bold text-center mb-6`}>Create Account</Text>
-
-// //           {['Full Names', 'phone', 'address', 'email'].map((field) => (
-// //             <React.Fragment key={field}>
-// //               <TextInput
-// //                 placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-// //                 value={formData[field]}
-// //                 onChangeText={(text) => handleChange(field, text)}
-// //                 style={getInputStyle(field)}
-// //                 editable={!loading}
-// //                 keyboardType={field === 'email' ? 'email-address' : 'default'}
-// //               />
-// //               {errors[field] && <Text style={tw`text-red-500`}>{errors[field]}</Text>}
-// //             </React.Fragment>
-// //           ))}
-
-// //           <TextInput
-// //             placeholder="Password"
-// //             value={formData.password}
-// //             onChangeText={(text) => handleChange('password', text)}
-// //             secureTextEntry={!showPassword}
-// //             style={getInputStyle('password')}
-// //             editable={!loading}
-// //           />
-// //           {errors.password && <Text style={tw`text-red-500`}>{errors.password}</Text>}
-
-// //           <TextInput
-// //             placeholder="Confirm Password"
-// //             value={formData.confirmPassword}
-// //             onChangeText={(text) => handleChange('confirmPassword', text)}
-// //             secureTextEntry={!showPassword}
-// //             style={getInputStyle('confirmPassword')}
-// //             editable={!loading}
-// //           />
-// //           {errors.confirmPassword && <Text style={tw`text-red-500`}>{errors.confirmPassword}</Text>}
-
-// //           {loading ? (
-// //             <ActivityIndicator size="large" color="#4CAF50" style={tw`mt-4`} />
-// //           ) : (
-// //             <TouchableOpacity onPress={handleSignup} style={tw`w-full bg-green-500 p-4 rounded-md mt-4`}>
-// //               <Text style={tw`text-white text-center font-bold`}>Sign Up</Text>
-// //             </TouchableOpacity>
-// //           )}
-
-// //           <TouchableOpacity onPress={() => navigation.replace('Login')} style={tw`mt-4`}>
-// //             <Text style={tw`text-center text-blue-600`}>Already have an account? Login</Text>
-// //           </TouchableOpacity>
-// //         </ScrollView>
-// //       </TouchableWithoutFeedback>
-// //     </KeyboardAvoidingView>
-// //   );
-// // };
-
-// // export default SignupScreen;
-
-
-// import React, { useState, useCallback } from 'react';
-// import {
-//   View,
-//   TextInput,
-//   Text,
-//   TouchableOpacity,
-//   ActivityIndicator,
-//   ScrollView,
-//   Alert,
-//   KeyboardAvoidingView,
-//   Platform,
-//   TouchableWithoutFeedback,
-//   Keyboard,
-// } from 'react-native';
-// import tw from 'twrnc';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { signup } from '../../state/slices/authSlice'; // Import the signup thunk from your Redux slice
-
-// const ValidationUtils = {
-//   validateEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase()),
-//   validatePhone: (phone) => /^(\+\d{1,3}[- ]?)?\d{10}$/.test(phone.replace(/[\s()-]/g, '')),
-//   validatePassword: (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password),
-//   sanitizeInput: (input) => input.replace(/[<>]/g, ''), // No trimming here
-// };
-
-// const SignupScreen = ({ navigation }) => {
-//   const dispatch = useDispatch();
-//   const { loading, error } = useSelector((state) => state.auth); // Access loading and error from Redux state
-
-//   const [formData, setFormData] = useState({
-//     fullNames: '',
-//     phone: '',
-//     address: '',
-//     email: '',
-//     password: '',
-//     confirmPassword: '',
-//   });
-
-//   const [errors, setErrors] = useState({});
-//   const [showPassword, setShowPassword] = useState(false);
-
-//   const handleChange = useCallback(
-//     (name, value) => {
-//       setFormData((prev) => ({
-//         ...prev,
-//         [name]: name === 'email' || name === 'phone' ? value.trim() : value, // Allow spaces for other fields
-//       }));
-
-//       if (errors[name]) {
-//         setErrors((prev) => {
-//           const newErrors = { ...prev };
-//           delete newErrors[name];
-//           return newErrors;
-//         });
-//       }
-//     },
-//     [errors]
-//   );
-
-//   const validateForm = useCallback(() => {
-//     const sanitizedData = { ...formData };
-//     sanitizedData.email = ValidationUtils.sanitizeInput(sanitizedData.email);
-//     sanitizedData.phone = ValidationUtils.sanitizeInput(sanitizedData.phone);
-
-//     const newErrors = {};
-
-//     Object.keys(sanitizedData).forEach((key) => {
-//       if (!sanitizedData[key].trim()) {
-//         newErrors[key] = `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
-//       }
-//     });
-
-//     if (sanitizedData.email && !ValidationUtils.validateEmail(sanitizedData.email)) {
-//       newErrors.email = 'Invalid email format';
-//     }
-
-//     if (sanitizedData.phone && !ValidationUtils.validatePhone(sanitizedData.phone)) {
-//       newErrors.phone = 'Invalid phone number format';
-//     }
-
-//     if (sanitizedData.password && !ValidationUtils.validatePassword(sanitizedData.password)) {
-//       newErrors.password = 'Password must be strong (8+ chars, uppercase, number, special char)';
-//     }
-
-//     if (sanitizedData.password !== sanitizedData.confirmPassword) {
-//       newErrors.confirmPassword = 'Passwords do not match';
-//     }
-
-//     setErrors(newErrors);
-//     return Object.keys(newErrors).length === 0;
-//   }, [formData]);
-
-//   const handleSignup = useCallback(async () => {
-//     if (!validateForm()) {
-//       Alert.alert('Validation Error', 'Please correct the highlighted errors.');
-//       return;
-//     }
-
-//     try {
-//       const { confirmPassword, ...submitData } = formData;
-//       await dispatch(signup({ ...submitData })).unwrap(); // Dispatch the signup thunk
-//       Alert.alert('Success', 'Account created successfully!', [
-//         { text: 'OK', onPress: () => navigation.replace('Login') },
-//       ]);
-//     } catch (err) {
-//       console.error('Signup error:', err);
-//       Alert.alert('Error', err.message || 'Registration failed. Please try again.');
-//     }
-//   }, [formData, dispatch, navigation, validateForm]);
-
-//   const getInputStyle = (fieldName) => [
-//     tw`w-full p-4 mb-2 border rounded-md`,
-//     errors[fieldName] ? tw`border-red-500` : tw`border-gray-300`,
-//   ];
-
-//   return (
-//     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw`flex-1`}>
-//       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-//         <ScrollView contentContainerStyle={tw`flex-grow px-6 justify-center`} keyboardShouldPersistTaps="handled">
-//           <Text style={tw`text-3xl font-bold text-center mb-6`}>Create Account</Text>
-
-//           {['fullNames', 'phone', 'address', 'email'].map((field) => (
-//             <React.Fragment key={field}>
-//               <TextInput
-//                 placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-//                 value={formData[field]}
-//                 onChangeText={(text) => handleChange(field, text)}
-//                 style={getInputStyle(field)}
-//                 editable={!loading}
-//                 keyboardType={field === 'email' ? 'email-address' : 'default'}
-//               />
-//               {errors[field] && <Text style={tw`text-red-500`}>{errors[field]}</Text>}
-//             </React.Fragment>
-//           ))}
-
-//           <TextInput
-//             placeholder="Password"
-//             value={formData.password}
-//             onChangeText={(text) => handleChange('password', text)}
-//             secureTextEntry={!showPassword}
-//             style={getInputStyle('password')}
-//             editable={!loading}
-//           />
-//           {errors.password && <Text style={tw`text-red-500`}>{errors.password}</Text>}
-
-//           <TextInput
-//             placeholder="Confirm Password"
-//             value={formData.confirmPassword}
-//             onChangeText={(text) => handleChange('confirmPassword', text)}
-//             secureTextEntry={!showPassword}
-//             style={getInputStyle('confirmPassword')}
-//             editable={!loading}
-//           />
-//           {errors.confirmPassword && <Text style={tw`text-red-500`}>{errors.confirmPassword}</Text>}
-
-//           {loading ? (
-//             <ActivityIndicator size="large" color="#4CAF50" style={tw`mt-4`} />
-//           ) : (
-//             <TouchableOpacity onPress={handleSignup} style={tw`w-full bg-green-500 p-4 rounded-md mt-4`}>
-//               <Text style={tw`text-white text-center font-bold`}>Sign Up</Text>
-//             </TouchableOpacity>
-//           )}
-
-//           <TouchableOpacity onPress={() => navigation.replace('Login')} style={tw`mt-4`}>
-//             <Text style={tw`text-center text-blue-600`}>Already have an account? Login</Text>
-//           </TouchableOpacity>
-//         </ScrollView>
-//       </TouchableWithoutFeedback>
-//     </KeyboardAvoidingView>
-//   );
-// };
-
-// export default SignupScreen;
-
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -362,22 +10,53 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  StatusBar,
   Keyboard,
+  Animated,
 } from 'react-native';
-import tw from 'twrnc';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
-import { signup } from '../../state/slices/authSlice'; // Import the signup thunk from your Redux slice
+import { signup } from '../../state/slices/authSlice';
+import tw from 'twrnc';
 
 const ValidationUtils = {
   validateEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase()),
   validatePhone: (phone) => /^(\+\d{1,3}[- ]?)?\d{10}$/.test(phone.replace(/[\s()-]/g, '')),
   validatePassword: (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password),
-  sanitizeInput: (input) => input.replace(/[<>]/g, ''), // No trimming here
+  sanitizeInput: (input) => input.replace(/[<>]/g, ''),
 };
 
 const SignupScreen = ({ navigation }) => {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth); // Access loading and error from Redux state
+  const { loading, error } = useSelector((state) => state.auth);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(formOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, formOpacity]);
 
   const [formData, setFormData] = useState({
     fullNames: '',
@@ -395,7 +74,7 @@ const SignupScreen = ({ navigation }) => {
     (name, value) => {
       setFormData((prev) => ({
         ...prev,
-        [name]: name === 'email' || name === 'phone' ? value.trim() : value, // Allow spaces for other fields
+        [name]: name === 'email' || name === 'phone' ? value.trim() : value,
       }));
 
       if (errors[name]) {
@@ -411,8 +90,9 @@ const SignupScreen = ({ navigation }) => {
 
   const validateForm = useCallback(() => {
     const sanitizedData = { ...formData };
-    sanitizedData.email = ValidationUtils.sanitizeInput(sanitizedData.email);
-    sanitizedData.phone = ValidationUtils.sanitizeInput(sanitizedData.phone);
+    Object.keys(sanitizedData).forEach(key => {
+      sanitizedData[key] = ValidationUtils.sanitizeInput(sanitizedData[key]);
+    });
 
     const newErrors = {};
 
@@ -423,19 +103,19 @@ const SignupScreen = ({ navigation }) => {
     });
 
     if (sanitizedData.email && !ValidationUtils.validateEmail(sanitizedData.email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = 'Invalid email format 📧';
     }
 
     if (sanitizedData.phone && !ValidationUtils.validatePhone(sanitizedData.phone)) {
-      newErrors.phone = 'Invalid phone number format';
+      newErrors.phone = 'Invalid phone number format 📱';
     }
 
     if (sanitizedData.password && !ValidationUtils.validatePassword(sanitizedData.password)) {
-      newErrors.password = 'Password must be strong (8+ chars, uppercase, number, special char)';
+      newErrors.password = 'Password must include: 8+ chars, uppercase, number, special char 🔒';
     }
 
     if (sanitizedData.password !== sanitizedData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Passwords do not match 🔐';
     }
 
     setErrors(newErrors);
@@ -444,81 +124,107 @@ const SignupScreen = ({ navigation }) => {
 
   const handleSignup = useCallback(async () => {
     if (!validateForm()) {
-      Alert.alert('Validation Error', 'Please correct the highlighted errors.');
+      Alert.alert('Validation Error', 'Please correct the highlighted errors ❌');
       return;
     }
 
     try {
       const { confirmPassword, ...submitData } = formData;
-      await dispatch(signup({ ...submitData })).unwrap(); // Dispatch the signup thunk
-      Alert.alert('Success', 'Account created successfully!', [
+      await dispatch(signup({ ...submitData })).unwrap();
+      Alert.alert('Success ✨', 'Account created successfully!', [
         { text: 'OK', onPress: () => navigation.replace('Login') },
       ]);
     } catch (err) {
       console.error('Signup error:', err);
-      Alert.alert('Error', err.message || 'Registration failed. Please try again.');
+      Alert.alert('Error ❌', err.message || 'Registration failed. Please try again.');
     }
   }, [formData, dispatch, navigation, validateForm]);
 
-  const getInputStyle = (fieldName) => [
-    tw`w-full p-4 mb-2 border rounded-md`,
-    errors[fieldName] ? tw`border-red-500` : tw`border-gray-300`,
+  const inputFields = [
+    { key: 'fullNames', placeholder: 'Full Name 👤', icon: '👤' },
+    { key: 'phone', placeholder: 'Phone Number 📱', icon: '📱', keyboardType: 'phone-pad' },
+    { key: 'address', placeholder: 'Address 📍', icon: '📍' },
+    { key: 'email', placeholder: 'Email 📧', icon: '📧', keyboardType: 'email-address' },
+    { key: 'password', placeholder: 'Password 🔒', icon: '🔒', secure: true },
+    { key: 'confirmPassword', placeholder: 'Confirm Password 🔐', icon: '🔐', secure: true },
   ];
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={tw`flex-1`}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={tw`flex-grow px-6 justify-center`} keyboardShouldPersistTaps="handled">
-          <Text style={tw`text-3xl font-bold text-center mb-6`}>Create Account</Text>
+    <LinearGradient colors={['#444', '#444']} style={tw`flex-1 pt-35`}>
+      <StatusBar barStyle="light-content" backgroundColor="#444" />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={tw`flex-1`}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView 
+            contentContainerStyle={tw`flex-grow px-6 py-8`}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Animated.View style={[
+              tw`items-center mb-8`,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}>
+              <Text style={tw`text-6xl mb-2`}>✨</Text>
+              <Text style={tw`text-white text-3xl font-bold tracking-wider`}>
+                Join ZestyReserve
+              </Text>
+              <Text style={tw`text-white/80 text-sm`}>
+                Create your account 📝
+              </Text>
+            </Animated.View>
 
-          {['fullNames', 'phone', 'address', 'email'].map((field) => (
-            <React.Fragment key={field}>
-              <TextInput
-                placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                value={formData[field]}
-                onChangeText={(text) => handleChange(field, text)}
-                style={getInputStyle(field)}
-                editable={!loading}
-                keyboardType={field === 'email' ? 'email-address' : 'default'}
-              />
-              {errors[field] && <Text style={tw`text-red-500`}>{errors[field]}</Text>}
-            </React.Fragment>
-          ))}
+            <Animated.View style={{ opacity: formOpacity }}>
+              {inputFields.map((field) => (
+                <View key={field.key}>
+                  <TextInput
+                    placeholder={field.placeholder}
+                    value={formData[field.key]}
+                    onChangeText={(text) => handleChange(field.key, text)}
+                    secureTextEntry={field.secure && !showPassword}
+                    keyboardType={field.keyboardType || 'default'}
+                    style={[
+                      tw`w-full p-4 mb-2 border rounded-xl text-white bg-white/10`,
+                      errors[field.key] ? tw`border-red-300` : tw`border-white/30`,
+                    ]}
+                    placeholderTextColor="#ffffff80"
+                    editable={!loading}
+                  />
+                  {errors[field.key] && (
+                    <Text style={tw`text-red-300 mb-2 ml-1`}>{errors[field.key]}</Text>
+                  )}
+                </View>
+              ))}
 
-          <TextInput
-            placeholder="Password"
-            value={formData.password}
-            onChangeText={(text) => handleChange('password', text)}
-            secureTextEntry={!showPassword}
-            style={getInputStyle('password')}
-            editable={!loading}
-          />
-          {errors.password && <Text style={tw`text-red-500`}>{errors.password}</Text>}
+              {loading ? (
+                <ActivityIndicator size="large" color="#ffffff" style={tw`mt-4`} />
+              ) : (
+                <TouchableOpacity 
+                  onPress={handleSignup} 
+                  style={tw`w-full bg-white p-4 rounded-xl mt-4`}
+                >
+                  <Text style={tw`text-indigo-600 text-center font-bold text-lg`}>
+                    Create Account 🚀
+                  </Text>
+                </TouchableOpacity>
+              )}
 
-          <TextInput
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChangeText={(text) => handleChange('confirmPassword', text)}
-            secureTextEntry={!showPassword}
-            style={getInputStyle('confirmPassword')}
-            editable={!loading}
-          />
-          {errors.confirmPassword && <Text style={tw`text-red-500`}>{errors.confirmPassword}</Text>}
-
-          {loading ? (
-            <ActivityIndicator size="large" color="#4CAF50" style={tw`mt-4`} />
-          ) : (
-            <TouchableOpacity onPress={handleSignup} style={tw`w-full bg-green-500 p-4 rounded-md mt-4`}>
-              <Text style={tw`text-white text-center font-bold`}>Sign Up</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity onPress={() => navigation.replace('Login')} style={tw`mt-4`}>
-            <Text style={tw`text-center text-blue-600`}>Already have an account? Login</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+              <TouchableOpacity 
+                onPress={() => navigation.replace('Login')} 
+                style={tw`mt-6`}
+              >
+                <Text style={tw`text-white/90 text-center`}>
+                  Already have an account? Login 👋
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 };
 

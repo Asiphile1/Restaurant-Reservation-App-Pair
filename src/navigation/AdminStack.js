@@ -21,7 +21,7 @@ import NotificationsScreen from '../screens/admin/NotificationsScreen';
 // Navigation Theme
 const navigationTheme = {
   colors: {
-    primary: 'tomato',
+    primary: '#4F46E5',
     background: 'white',
     card: 'white',
     text: 'black',
@@ -35,7 +35,7 @@ const TAB_ICONS = {
   DashboardHome: 'home-outline',
   Analytics: 'stats-chart-outline',
   ManageSlots: 'calendar-outline',
-  Notifications: 'notifications-outline', // Bell icon for notifications
+  Notifications: 'notifications-outline', 
   Settings: 'settings-outline',
 };
 

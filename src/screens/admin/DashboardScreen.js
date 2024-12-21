@@ -12,6 +12,7 @@ import tw from 'twrnc';
 import { StatusBar } from 'react-native';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const DashboardScreen = ({ navigation }) => {
   const [metrics, setMetrics] = useState(null);
@@ -99,29 +100,32 @@ const DashboardScreen = ({ navigation }) => {
   if (loading) {
     return (
       <SafeAreaView style={tw`flex-1 bg-gray-50 justify-center items-center`}>
-        <ActivityIndicator size="large" color="#4F46E5" />
+        <ActivityIndicator size="large" color="#999" />
         <Text style={tw`mt-4 text-gray-600 font-medium`}>Loading Dashboard...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={tw`flex-1  bg-gray-50`}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f4f4f4" />
+    <SafeAreaView style={tw`flex-1 bg-gray-50`}>
+      <StatusBar barStyle="light-content" backgroundColor="#999" />
 
       {/* Header */}
-      <View style={tw`flex-row justify-between items-center p-4 pt-10 bg-white shadow-sm`}>
+      <LinearGradient
+        colors={['#999', '#999']}
+        style={tw`flex-row justify-between items-center p-4 pt-10 rounded-b-3xl shadow-sm`}
+      >
         <View>
-          <Text style={tw`text-2xl font-bold text-gray-900`}>Dashboard</Text>
-          <Text style={tw`text-sm text-gray-600`}>Welcome back, Admin</Text>
+          <Text style={tw`text-2xl font-bold text-white`}>Dashboard</Text>
+          <Text style={tw`text-sm text-white`}>Welcome back, Admin</Text>
         </View>
         <TouchableOpacity
           onPress={() => navigation.navigate('Profile')}
-          style={tw`w-12 h-12 bg-gray-100 rounded-full justify-center items-center`}
+          style={tw`w-12 h-12 bg-white rounded-full justify-center items-center`}
         >
-          <Ionicons name="person-outline" size={24} color="#4F46E5" />
+          <Ionicons name="person-outline" size={24} color="#999" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Stats Cards */}
@@ -132,7 +136,7 @@ const DashboardScreen = ({ navigation }) => {
               style={tw`bg-white p-4 rounded-xl mb-4 w-[48%] shadow-sm`}
             >
               <View style={tw`bg-indigo-50 w-10 h-10 rounded-full items-center justify-center mb-4`}>
-                <Ionicons name={stat.icon} size={24} color="#4F46E5" />
+                <Ionicons name={stat.icon} size={24} color="#999" />
               </View>
               <Text style={tw`text-2xl font-bold text-gray-900`}>{stat.value}</Text>
               <Text style={tw`text-gray-600 text-sm mt-1`}>{stat.title}</Text>
@@ -151,7 +155,7 @@ const DashboardScreen = ({ navigation }) => {
                 style={tw`bg-white p-4 rounded-xl mb-4 w-[48%] shadow-sm border border-gray-100`}
               >
                 <View style={tw`bg-indigo-50 w-10 h-10 rounded-full items-center justify-center mb-3`}>
-                  <Ionicons name={action.icon} size={24} color="#4F46E5" />
+                  <Ionicons name={action.icon} size={24} color="#999" />
                 </View>
                 <Text style={tw`text-gray-900 font-medium mb-1`}>{action.title}</Text>
                 <Text style={tw`text-gray-500 text-xs`}>{action.description}</Text>

@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const UsersScreen = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -34,18 +35,18 @@ const UsersScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#333" />
+      <LinearGradient colors={['#4338CA', '#4F46E5']} style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.loadingText}>Loading users...</Text>
-      </View>
+      </LinearGradient>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
+      <LinearGradient colors={['#4338CA', '#4F46E5']} style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -79,13 +80,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#333',
+    color: '#4F46E5',
   },
   loadingContainer: {
     flex: 1,
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: '#FFFFFF',
   },
   errorContainer: {
     flex: 1,
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   userCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Modal,
+  StatusBar,
   StyleSheet,
   Alert,
   Pressable,
@@ -15,10 +16,49 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
+import * as Notifications from 'expo-notifications';
+import * as Permissions from 'expo-permissions';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Restaurant Detail Modal Component
 const RestaurantDetailModal = ({ restaurant, visible, onClose, onReserve, navigation }) => {
   const [selectedTime, setSelectedTime] = useState(null);
+
+  useEffect(() => {
+    const registerForPushNotificationsAsync = async () => {
+      const { status: existingStatus } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
+      let finalStatus = existingStatus;
+  
+      if (existingStatus !== 'granted') {
+        const { status } = await Permissions.askAsync(Permissions.NOTIFICATIONS);
+        finalStatus = status;
+      }
+  
+      if (finalStatus !== 'granted') {
+        Alert.alert('Failed to get push token for push notification!');
+        return;
+      }
+  
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log(token);
+      // You can send the token to your server to store it and use it to send notifications
+    };
+  
+    registerForPushNotificationsAsync();
+  
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log(notification);
+    });
+  
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log(response);
+    });
+  
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener);
+      Notifications.removeNotificationSubscription(responseListener);
+    };
+  }, []);
 
   if (!restaurant) {
     return null;
@@ -42,7 +82,7 @@ const RestaurantDetailModal = ({ restaurant, visible, onClose, onReserve, naviga
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="white" />
+            <Ionicons name="close" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
           <Image
@@ -177,7 +217,7 @@ const HomeScreen = ({ navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E88E5" />
+        <ActivityIndicator size="large" color="#444" />
       </View>
     );
   }
@@ -185,7 +225,7 @@ const HomeScreen = ({ navigation }) => {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text>Error: {error}</Text>
+        <Text style={styles.errorText}>Error: {error}</Text>
       </View>
     );
   }
@@ -193,24 +233,31 @@ const HomeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Welcome Back {username || 'Guest'}</Text>
+      <LinearGradient
+        colors={['#444', '#444']}
+        style={styles.header}
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#444" />
+        <View>
+        <Text style={styles.WelcomeText}>Home</Text>
+        <Text style={styles.headerTitle}>Welcome Back, {username || 'Guest'}</Text>
+        </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity
             style={styles.notificationIcon}
             onPress={handleNotificationPress}
           >
-            <Ionicons name="notifications-outline" size={24} color="#1E88E5" />
+            <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
             {hasNewNotifications && <View style={styles.notificationBadge} />}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.settingsIcon}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="ellipsis-vertical" size={24} color="#1E88E5" />
+            <Ionicons name="ellipsis-vertical" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -314,18 +361,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 35,
-    paddingBottom: 15,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingTop: 10,
+    paddingBottom: 8,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#FFFFFF',
+  },
+  WelcomeText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   headerIcons: {
     flexDirection: 'row',
@@ -356,7 +405,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 4,
     shadowRadius: 4,
   },
   searchIcon: {
@@ -372,7 +421,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   categoryChip: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#444',
     paddingHorizontal: 15,
     height: 40,
     borderRadius: 20,
@@ -381,10 +430,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   selectedCategoryChip: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#4F46E599',
   },
   categoryText: {
-    color: '#333',
+    color: '#fff',
   },
   selectedCategoryText: {
     color: '#FFFFFF',
@@ -416,6 +465,7 @@ const styles = StyleSheet.create({
   restaurantName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#333',
   },
   restaurantCuisine: {
     color: '#777',
@@ -425,7 +475,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   tagBadge: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#444',
     color: '#FFFFFF',
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -474,6 +524,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
     textAlign: 'center',
+    color: '#333',
   },
   modalSubtitle: {
     color: '#777',
@@ -512,13 +563,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#C8E6C9',
   },
   selectedTimeSlot: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#444',
   },
   timeSlotText: {
     color: '#333',
   },
   reserveButton: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#444',
     padding: 15,
     borderRadius: 10,
     width: '100%',
@@ -539,6 +590,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
   },
   noResultsText: {
     textAlign: 'center',

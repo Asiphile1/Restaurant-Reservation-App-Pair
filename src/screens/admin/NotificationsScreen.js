@@ -12,6 +12,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const NotificationsScreen = () => {
   const [myNotifications, setMyNotifications] = useState([]);
@@ -19,8 +21,9 @@ const NotificationsScreen = () => {
   const [error, setError] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
+  const userId = useSelector((state) => state.auth.user.id);
+
   // Form state for creating a new notification
-  const [user, setUser] = useState('');
   const [message, setMessage] = useState('');
   const [type, setType] = useState('');
   const [link, setLink] = useState('');
@@ -48,7 +51,7 @@ const NotificationsScreen = () => {
   // Function to send a new notification
   const sendNotification = async () => {
     const notification = {
-      user,
+      user: userId,
       message,
       type,
       link,
@@ -95,7 +98,7 @@ const NotificationsScreen = () => {
   const renderNotification = ({ item }) => (
     <TouchableOpacity style={styles.notificationCard}>
       <View style={styles.iconContainer}>
-        <Ionicons name="notifications" size={24} color="#1E88E5" />
+        <Ionicons name="notifications" size={24} color="#4F46E5" />
       </View>
       <View style={styles.contentContainer}>
         <Text style={styles.title}>{item.message}</Text>
@@ -112,8 +115,6 @@ const NotificationsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Notifications</Text>
-
       {/* Button to open the modal */}
       <TouchableOpacity
         style={styles.addButton}
@@ -124,9 +125,14 @@ const NotificationsScreen = () => {
 
       {/* List of notifications */}
       {loading ? (
-        <ActivityIndicator size="large" color="#1E88E5" />
+        <LinearGradient colors={['#fff', '#fff']} style={styles.loadingContainer}>
+          <ActivityIndicator size='small' color="#000" />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </LinearGradient>
       ) : error ? (
-        <Text style={styles.errorText}>Error: {error}</Text>
+        <LinearGradient colors={['#4338CA', '#4F46E5']} style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </LinearGradient>
       ) : (
         <FlatList
           data={myNotifications}
@@ -143,41 +149,51 @@ const NotificationsScreen = () => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalHeader}>Create New Notification</Text>
-          <TextInput
-            style={styles.input}
-            value={user}
-            onChangeText={setUser}
-            placeholder="User ID"
-          />
-          <TextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Message"
-          />
-          <TextInput
-            style={styles.input}
-            value={type}
-            onChangeText={setType}
-            placeholder="Type"
-          />
-          <TextInput
-            style={styles.input}
-            value={link}
-            onChangeText={setLink}
-            placeholder="Link"
-          />
-          <TextInput
-            style={styles.input}
-            value={expiry}
-            onChangeText={setExpiry}
-            placeholder="Expiry (YYYY-MM-DD)"
-          />
-          <Button title="Send Notification" onPress={sendNotification} />
-          <Button title="Cancel" onPress={() => setModalVisible(false)} />
-        </View>
+        <LinearGradient colors={['#4338CA', '#4F46E5']} style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeader}>Create New Notification</Text>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Message"
+              placeholderTextColor="grey"
+            />
+            <TextInput
+              style={styles.input}
+              value={type}
+              onChangeText={setType}
+              placeholder="Type"
+              placeholderTextColor="grey"
+            />
+            <TextInput
+              style={styles.input}
+              value={link}
+              onChangeText={setLink}
+              placeholder="Link"
+              placeholderTextColor="grey"
+            />
+            <TextInput
+              style={styles.input}
+              value={expiry}
+              onChangeText={setExpiry}
+              placeholder="Expiry (YYYY-MM-DD)"
+              placeholderTextColor="grey"
+            />
+            <TouchableOpacity
+              style={styles.sendButton}
+              onPress={sendNotification}
+            >
+              <Text style={styles.sendButtonText}>Send Notification</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       </Modal>
     </View>
   );
@@ -189,15 +205,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     padding: 16,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
   addButton: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#4F46E5',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -246,20 +255,48 @@ const styles = StyleSheet.create({
   },
   link: {
     fontSize: 12,
-    color: '#1E88E5',
+    color: '#4F46E5',
     marginTop: 4,
     textDecorationLine: 'underline',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#000',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     padding: 16,
-    backgroundColor: '#FFF',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   modalHeader: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#4F46E5',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -271,11 +308,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     fontSize: 16,
+    color: '#333',
   },
-  errorText: {
+  sendButton: {
+    backgroundColor: '#4F46E5',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sendButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    color: 'red',
-    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
