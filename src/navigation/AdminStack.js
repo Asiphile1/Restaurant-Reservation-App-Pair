@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View } from 'react-native';
 
 // Screen Imports
 import DashboardScreen from '../screens/admin/DashboardScreen';
@@ -14,11 +15,13 @@ import ManageBookingsScreen from '../screens/admin/ManageBookingsScreen';
 import PaymentsScreen from '../screens/admin/PaymentsScreen';
 import ManageStores from '../screens/admin/ManageStores';
 import RestaurantDetailsScreen from '../screens/admin/RestaurantDetailsScreen';
+import UsersScreen from '../screens/admin/UsersScreen';
+import NotificationsScreen from '../screens/admin/NotificationsScreen';
 
 // Navigation Theme
 const navigationTheme = {
   colors: {
-    primary: 'tomato',
+    primary: '#4F46E5',
     background: 'white',
     card: 'white',
     text: 'black',
@@ -32,7 +35,8 @@ const TAB_ICONS = {
   DashboardHome: 'home-outline',
   Analytics: 'stats-chart-outline',
   ManageSlots: 'calendar-outline',
-  Settings: 'settings-outline', // Add Settings icon
+  Notifications: 'notifications-outline', 
+  Settings: 'settings-outline',
 };
 
 // Dashboard Stack Navigator (for Profile and Settings)
@@ -72,13 +76,34 @@ const DashboardStack = () => {
 // Dashboard Tab Navigator
 const DashboardTabs = () => {
   const Tab = createBottomTabNavigator();
+  const [hasNewNotifications, setHasNewNotifications] = useState(true); // State for notification badge
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => (
-          <Ionicons name={TAB_ICONS[route.name]} size={size} color={color} />
-        ),
+        tabBarIcon: ({ color, size }) => {
+          if (route.name === 'Notifications') {
+            return (
+              <View style={{ position: 'relative' }}>
+                <Ionicons name={TAB_ICONS[route.name]} size={size} color={color} />
+                {hasNewNotifications && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -3,
+                      right: -3,
+                      backgroundColor: 'red',
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                    }}
+                  />
+                )}
+              </View>
+            );
+          }
+          return <Ionicons name={TAB_ICONS[route.name]} size={size} color={color} />;
+        },
         tabBarActiveTintColor: navigationTheme.colors.primary,
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
@@ -106,14 +131,21 @@ const DashboardTabs = () => {
         options={{ title: 'Slot Management' }}
       />
       <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault(); // Prevent default action
+            setHasNewNotifications(false); // Clear the notification badge
+            navigation.navigate('Notifications'); // Navigate to Notifications
+          },
+        })}
+        options={{ title: 'Notifications' }}
+      />
+      <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
-        }}
+        options={{ title: 'Settings' }}
       />
     </Tab.Navigator>
   );
@@ -164,6 +196,11 @@ const AdminStack = () => {
         name="RestaurantDetailsScreen"
         component={RestaurantDetailsScreen}
         options={{ title: 'Restaurant Management' }}
+      />
+      <Stack.Screen
+        name="Users"
+        component={UsersScreen}
+        options={{ title: 'App Users' }}
       />
     </Stack.Navigator>
   );

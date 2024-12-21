@@ -10,142 +10,172 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { StatusBar } from 'react-native';
+import axios from 'axios';
+import { useSelector } from 'react-redux';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const DashboardScreen = ({ navigation }) => {
-  // Example state for dynamic data
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState(0);
+
+  const token = useSelector(state => state.auth.token);
 
   useEffect(() => {
-    // Simulate fetching dashboard data
-    const fetchMetrics = () => {
-      setTimeout(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const usersResponse = await axios.get('https://reservationappserver.onrender.com/auth/total-profiles', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUsers(usersResponse.data.totalUsers);
+        
         setMetrics({
           totalReservations: 120,
-          activeUsers: 50,
+          activeUsers: usersResponse.data.totalUsers,
           pendingApprovals: 3,
         });
+        
         setLoading(false);
-      }, 1500); // Simulating API delay
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setLoading(false);
+      }
     };
 
-    fetchMetrics();
-  }, []);
+    fetchDashboardData();
+  }, [token]);
+
+  const statsCards = [
+    {
+      title: 'Total Reservations',
+      value: metrics?.totalReservations || 140,
+      icon: 'calendar-outline',
+    },
+    {
+      title: 'Pending Approvals',
+      value: metrics?.pendingApprovals || 0,
+      icon: 'time-outline',
+    },
+  ];
+
+  const quickActions = [
+    {
+      title: 'Analytics',
+      icon: 'analytics-outline',
+      route: 'Analytics',
+      description: 'View detailed reports',
+    },
+    {
+      title: 'Manage Slots',
+      icon: 'calendar-outline',
+      route: 'ManageSlots',
+      description: 'Schedule management',
+    },
+    {
+      title: 'Users',
+      icon: 'people-outline',
+      route: 'Users',
+      description: `Manage ${metrics?.activeUsers || 0} users`,
+    },
+    {
+      title: 'Bookings',
+      icon: 'book-outline',
+      route: 'ManageBookings',
+      description: 'Review reservations',
+    },
+    {
+      title: 'Stores',
+      icon: 'storefront-outline',
+      route: 'ManageStores',
+      description: 'Manage locations',
+    },
+    {
+      title: 'Payments',
+      icon: 'cash-outline',
+      route: 'Payments',
+      description: 'Transaction history',
+    },
+  ];
 
   if (loading) {
     return (
-      <SafeAreaView style={tw`flex-1 bg-white justify-center items-center`}>
-        <ActivityIndicator size="large" color="#333" />
-        <Text style={tw`mt-4 text-gray-600`}>Loading Dashboard...</Text>
+      <SafeAreaView style={tw`flex-1 bg-gray-50 justify-center items-center`}>
+        <ActivityIndicator size="large" color="#999" />
+        <Text style={tw`mt-4 text-gray-600 font-medium`}>Loading Dashboard...</Text>
       </SafeAreaView>
     );
   }
 
-  // Quick Actions configuration
-  const quickActions = [
-    { 
-      title: 'View Analytics', 
-      icon: 'analytics-outline', 
-      color: 'bg-gray-800', 
-      route: 'Analytics' 
-    },
-    { 
-      title: 'Manage Slots', 
-      icon: 'calendar-outline', 
-      color: 'bg-gray-700', 
-      route: 'ManageSlots' 
-    },
-    { 
-      title: 'Add Reservation', 
-      icon: 'add-circle-outline', 
-      color: 'bg-gray-600', 
-      route: 'AddReservation' 
-    },
-    { 
-      title: 'Manage Bookings', 
-      icon: 'book-outline', 
-      color: 'bg-gray-500', 
-      route: 'ManageBookings' 
-    },
-    { 
-      title: 'Manage Stores', 
-      icon: 'storefront-outline', 
-      color: 'bg-gray-400', 
-      route: 'ManageStores' 
-    },
-    { 
-      title: 'Payments', 
-      icon: 'cash-outline', 
-      color: 'bg-gray-300', 
-      route: 'Payments' 
-    },
-  ];
-
   return (
     <SafeAreaView style={tw`flex-1 bg-gray-50`}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f4f4f4" />
+      <StatusBar barStyle="light-content" backgroundColor="#999" />
 
-      {/* Header Section */}
-      <View style={tw`flex-row justify-between items-center p-4 bg-white shadow-sm`}>
-        <Text style={tw`text-2xl font-bold text-gray-900`}>Dashboard</Text>
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('Profile')}
-          style={tw`p-2 rounded-full`}
-        >
-          <Ionicons name="person-circle-outline" size={36} color="#333" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        style={tw`flex-1`}
+      {/* Header */}
+      <LinearGradient
+        colors={['#999', '#999']}
+        style={tw`flex-row justify-between items-center p-4 pt-10 rounded-b-3xl shadow-sm`}
       >
-        {/* Key Metrics Section */}
-        <View style={tw`p-4`}>
-          <Text style={tw`text-lg font-semibold mb-4 text-gray-800`}>Overview</Text>
-          <View style={tw`flex-row justify-between`}>
-            {/* Total Reservations */}
-            <View style={tw`bg-white p-4 rounded-lg flex-1 items-center shadow-sm`}>
-              <Text style={tw`text-2xl font-bold text-gray-900`}>{metrics.totalReservations}</Text>
-              <Text style={tw`text-sm text-gray-600`}>Reservations</Text>
+        <View>
+          <Text style={tw`text-2xl font-bold text-white`}>Dashboard</Text>
+          <Text style={tw`text-sm text-white`}>Welcome back, Admin</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Profile')}
+          style={tw`w-12 h-12 bg-white rounded-full justify-center items-center`}
+        >
+          <Ionicons name="person-outline" size={24} color="#999" />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Stats Cards */}
+        <View style={tw`flex-row flex-wrap justify-between px-4 py-6`}>
+          {statsCards.map((stat, index) => (
+            <View
+              key={index}
+              style={tw`bg-white p-4 rounded-xl mb-4 w-[48%] shadow-sm`}
+            >
+              <View style={tw`bg-indigo-50 w-10 h-10 rounded-full items-center justify-center mb-4`}>
+                <Ionicons name={stat.icon} size={24} color="#999" />
+              </View>
+              <Text style={tw`text-2xl font-bold text-gray-900`}>{stat.value}</Text>
+              <Text style={tw`text-gray-600 text-sm mt-1`}>{stat.title}</Text>
             </View>
-            {/* Active Users */}
-            <View style={tw`bg-white p-4 rounded-lg flex-1 items-center shadow-sm`}>
-              <Text style={tw`text-2xl font-bold text-gray-900`}>{metrics.activeUsers}</Text>
-              <Text style={tw`text-sm text-gray-600`}>Active Users</Text>
-            </View>
-            {/* Pending Approvals */}
-            <View style={tw`bg-white p-4 rounded-lg flex-1 items-center shadow-sm`}>
-              <Text style={tw`text-2xl font-bold text-gray-900`}>{metrics.pendingApprovals}</Text>
-              <Text style={tw`text-sm text-gray-600`}>Pending</Text>
-            </View>
-          </View>
+          ))}
         </View>
 
-        {/* Insights Section */}
-        <View style={tw`p-4 bg-white rounded-lg mx-4 my-2 shadow-sm`}>
-          <Text style={tw`text-lg font-semibold text-gray-800 mb-2`}>Insights</Text>
-          <Text style={tw`text-sm text-gray-600`}>Placeholder for interactive charts or other insights.</Text>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={tw`p-4`}>
-          <Text style={tw`text-lg font-semibold mb-4 text-gray-800`}>Quick Actions</Text>
+        {/* Quick Actions Grid */}
+        <View style={tw`px-4 mb-6`}>
+          <Text style={tw`text-lg font-semibold text-gray-900 mb-4`}>Quick Actions</Text>
           <View style={tw`flex-row flex-wrap justify-between`}>
             {quickActions.map((action, index) => (
               <TouchableOpacity
                 key={index}
                 onPress={() => navigation.navigate(action.route)}
-                style={tw`${action.color} p-4 rounded-lg mb-4 w-[48%] flex-row items-center justify-center`}
+                style={tw`bg-white p-4 rounded-xl mb-4 w-[48%] shadow-sm border border-gray-100`}
               >
-                <Ionicons 
-                  name={action.icon} 
-                  size={20} 
-                  color="white" 
-                  style={tw`mr-2`} 
-                />
-                <Text style={tw`text-white text-center`}>{action.title}</Text>
+                <View style={tw`bg-indigo-50 w-10 h-10 rounded-full items-center justify-center mb-3`}>
+                  <Ionicons name={action.icon} size={24} color="#999" />
+                </View>
+                <Text style={tw`text-gray-900 font-medium mb-1`}>{action.title}</Text>
+                <Text style={tw`text-gray-500 text-xs`}>{action.description}</Text>
               </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Recent Activity */}
+        <View style={tw`mx-4 mb-6 bg-white rounded-xl p-4 shadow-sm`}>
+          <Text style={tw`text-lg font-semibold text-gray-900 mb-4`}>Recent Activity</Text>
+          <View style={tw`space-y-4`}>
+            {[1, 2, 3].map((_, index) => (
+              <View key={index} style={tw`flex-row items-center`}>
+                <View style={tw`w-2 h-2 rounded-full bg-indigo-500 mr-4`} />
+                <View style={tw`flex-1`}>
+                  <Text style={tw`text-gray-900 font-medium`}>New booking received</Text>
+                  <Text style={tw`text-gray-500 text-sm`}>2 minutes ago</Text>
+                </View>
+              </View>
             ))}
           </View>
         </View>

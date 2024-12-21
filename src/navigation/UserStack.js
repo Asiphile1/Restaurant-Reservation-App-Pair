@@ -3,15 +3,17 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// Import User Screens
+// Import Screens
 import HomeScreen from '../screens/user/HomeScreen';
 import ReservationScreen from '../screens/user/ReservationScreen';
 import ProfileScreen from '../screens/user/ProfileScreen';
-import DiningPlacesScreen from '../screens/user/DiningPlacesScreen';
 import ReservationsScreen from '../screens/user/ReservationScreen';
 import BookingsScreen from '../screens/user/BookingsScreen';
 import PaymentScreen from '../screens/user/PaymentScreen';
 import Pay from '../screens/user/Pay';
+import NotificationsScreen from '../screens/user/NotificationsScreen';
+import FavoritesScreen from '../screens/user/FavoritesScreen'; // New screen
+import SettingsScreen from '../screens/user/SettingsScreen';
 
 // Initialize Tab and Stack Navigators
 const Tab = createBottomTabNavigator();
@@ -22,7 +24,7 @@ const ICON_MAP = {
   HomeTab: 'home-outline',
   ManageBookingsScreen: 'calendar-outline',
   ProfileTab: 'person-outline',
-  DiningPlaces: 'restaurant-outline',
+  Favorites: 'heart-outline', // New icon for Favorites
 };
 
 // Reusable function for rendering tab icons
@@ -53,6 +55,16 @@ const HomeStack = () => (
       component={PaymentScreen}
       options={{ headerTitle: '' }}
     />
+    <Stack.Screen
+      name="Notifications"
+      component={NotificationsScreen}
+      options={{ headerTitle: 'Notifications' }}
+    />
+    <Stack.Screen
+      name="Settings"
+      component={SettingsScreen}
+      options={{ headerTitle: 'Settings' }}
+    />
   </Stack.Navigator>
 );
 
@@ -62,7 +74,7 @@ const UserStack = () => (
     initialRouteName="HomeTab" // Default initial screen
     screenOptions={({ route }) => ({
       tabBarIcon: ({ color, size }) => renderTabIcon(route.name, color, size),
-      tabBarActiveTintColor: 'tomato', // Highlighted color for active tab
+      tabBarActiveTintColor: '#4F46E5', // Highlighted color for active tab
       tabBarInactiveTintColor: 'gray', // Color for inactive tabs
       tabBarStyle: {
         elevation: 5, // Adds shadow on Android
@@ -93,12 +105,12 @@ const UserStack = () => (
       }}
     />
 
-    {/* Dining Places Tab */}
+    {/* Favorites Tab */}
     <Tab.Screen
-      name="DiningPlaces"
-      component={DiningPlacesScreen}
+      name="Favorites"
+      component={FavoritesScreen} // New screen
       options={{
-        tabBarLabel: 'Dining',
+        tabBarLabel: 'Favorites',
       }}
     />
 

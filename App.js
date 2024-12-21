@@ -63,7 +63,7 @@ const App = () => {
   return (
     <Provider store={store}>
       <NavigationContainer> 
-        <StatusBar style={'dark'} backgroundColor={'transparent'}/>
+        {/* <StatusBar style={'dark'} backgroundColor={'transparent'}/> */}
         <AppNavigator />
       </NavigationContainer>
     </Provider>

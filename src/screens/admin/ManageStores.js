@@ -157,16 +157,17 @@ const ManageStores = () => {
       phone,
       email,
       price,
-      coordinates,
     } = form;
+
+    // Combine address and city into location
+    const location = `${address}, ${city}`;
 
     // Validate required fields
     if (
       !name ||
       !image ||
       !description ||
-      !address ||
-      !city ||
+      !location ||
       !cuisine ||
       !capacity ||
       !price.lunch ||
@@ -199,8 +200,7 @@ const ManageStores = () => {
       name,
       image: imageUrl,
       description,
-      location: `${address}, ${city}`, // Combine address and city into location
-      coordinates, // Ensure coordinates are included
+      location,
       cuisine,
       capacity: parseInt(capacity, 10),
       phone,
@@ -209,9 +209,6 @@ const ManageStores = () => {
         lunch: parseFloat(price.lunch),
         dinner: parseFloat(price.dinner),
       },
-      averageRating: 0, // Optional: Add if required
-      totalReviews: 0, // Optional: Add if required
-      user: token.userId, // Ensure the user ID is included
     };
 
     // Log the restaurantData object
@@ -323,55 +320,54 @@ const ManageStores = () => {
   };
 
   // Render restaurant item
-// Render restaurant item
-const renderRestaurantItem = ({ item }) => (
-  <TouchableOpacity
-    style={tw`flex-row p-4 mb-4 bg-white border border-gray-300 rounded-lg shadow-sm`}
-    onPress={() => navigation.navigate('RestaurantDetailsScreen', { restaurant: item })} // Pass the restaurant object
-  >
-    <Image
-      source={{ uri: item.image }}
-      style={tw`w-24 h-24 rounded-lg mr-4`}
-      resizeMode="cover"
-    />
-    <View style={tw`flex-1`}>
-      <Text style={tw`text-lg font-semibold text-gray-800`}>{item.name}</Text>
-      <Text style={tw`text-sm text-gray-600`}>{item.location}</Text>
-      <Text style={tw`text-sm text-gray-600`}>Cuisine: {item.cuisine}</Text>
-      <Text style={tw`text-sm text-gray-600`}>Capacity: {item.capacity}</Text>
-    </View>
-    <View style={tw`flex-row items-center`}>
-      <TouchableOpacity
-        style={tw`mr-4`}
-        onPress={() => {
-          setEditingRestaurant(item);
-          setForm({
-            name: item.name,
-            image: { uri: item.image },
-            description: item.description || '',
-            address: item.location.split(', ')[0],
-            city: item.location.split(', ')[1],
-            cuisine: item.cuisine,
-            capacity: item.capacity.toString(),
-            phone: item.phone || '',
-            email: item.email || '',
-            price: {
-              lunch: item.price?.lunch.toString() || '',
-              dinner: item.price?.dinner.toString() || '',
-            },
-            coordinates: item.coordinates || { type: 'Point', coordinates: [0, 0] },
-          });
-          setModalVisible(true);
-        }}
-      >
-        <Ionicons name="create-outline" size={24} color="blue" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleDeleteRestaurant(item._id)}>
-        <Ionicons name="trash-outline" size={24} color="red" />
-      </TouchableOpacity>
-    </View>
-  </TouchableOpacity>
-);
+  const renderRestaurantItem = ({ item }) => (
+    <TouchableOpacity
+      style={tw`flex-row p-4 mb-4 bg-white border border-gray-300 rounded-lg shadow-sm`}
+      onPress={() => navigation.navigate('RestaurantDetailsScreen', { restaurant: item })} // Pass the restaurant object
+    >
+      <Image
+        source={{ uri: item.image }}
+        style={tw`w-24 h-24 rounded-lg mr-4`}
+        resizeMode="cover"
+      />
+      <View style={tw`flex-1`}>
+        <Text style={tw`text-lg font-semibold text-gray-800`}>{item.name}</Text>
+        <Text style={tw`text-sm text-gray-600`}>{item.location}</Text>
+        <Text style={tw`text-sm text-gray-600`}>Cuisine: {item.cuisine}</Text>
+        <Text style={tw`text-sm text-gray-600`}>Capacity: {item.capacity}</Text>
+      </View>
+      <View style={tw`flex-row items-center`}>
+        <TouchableOpacity
+          style={tw`mr-4`}
+          onPress={() => {
+            setEditingRestaurant(item);
+            setForm({
+              name: item.name,
+              image: { uri: item.image },
+              description: item.description || '',
+              address: item.location.split(', ')[0],
+              city: item.location.split(', ')[1],
+              cuisine: item.cuisine,
+              capacity: item.capacity.toString(),
+              phone: item.phone || '',
+              email: item.email || '',
+              price: {
+                lunch: item.price?.lunch.toString() || '',
+                dinner: item.price?.dinner.toString() || '',
+              },
+              coordinates: item.coordinates || { type: 'Point', coordinates: [0, 0] },
+            });
+            setModalVisible(true);
+          }}
+        >
+          <Ionicons name="create-outline" size={24} color="#4F46E5" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleDeleteRestaurant(item._id)}>
+          <Ionicons name="trash-outline" size={24} color="#F33A3A" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
 
   // Handle image picker
   const handleImagePicker = async () => {
@@ -390,7 +386,7 @@ const renderRestaurantItem = ({ item }) => (
   return (
     <View style={tw`flex-1 bg-gray-100 p-4`}>
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" style={tw`flex-1 justify-center items-center`} />
+        <ActivityIndicator size="large" color="#4F46E5" style={tw`flex-1 justify-center items-center`} />
       ) : (
         <>
           <FlatList
@@ -407,7 +403,7 @@ const renderRestaurantItem = ({ item }) => (
           )}
 
           <TouchableOpacity
-            style={tw`absolute bottom-4 right-4 bg-blue-500 p-4 rounded-full shadow-lg`}
+            style={tw`absolute bottom-4 right-4 bg-indigo-600 p-4 rounded-full shadow-lg`}
             onPress={() => setModalVisible(true)}
           >
             <Ionicons name="add" size={24} color="white" />
@@ -564,7 +560,7 @@ const renderRestaurantItem = ({ item }) => (
 
                 <TouchableOpacity
                   onPress={handleRestaurantSubmit}
-                  style={tw`bg-blue-500 p-4 rounded-lg shadow-lg`}
+                  style={tw`bg-indigo-600 p-4 rounded-lg shadow-lg`}
                 >
                   <Text style={tw`text-white text-center font-medium`}>
                     {editingRestaurant ? 'Update Restaurant' : 'Add Restaurant'}
