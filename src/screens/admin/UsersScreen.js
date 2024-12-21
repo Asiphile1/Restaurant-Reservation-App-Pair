@@ -35,7 +35,7 @@ const UsersScreen = () => {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#4338CA', '#4F46E5']} style={styles.loadingContainer}>
+      <LinearGradient colors={['#444', '#444']} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <Text style={styles.loadingText}>Loading users...</Text>
       </LinearGradient>
@@ -44,7 +44,7 @@ const UsersScreen = () => {
 
   if (error) {
     return (
-      <LinearGradient colors={['#4338CA', '#4F46E5']} style={styles.errorContainer}>
+      <LinearGradient colors={['#444', '#444']} style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
       </LinearGradient>
     );
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#4F46E5',
+    color: '#444',
   },
   loadingContainer: {
     flex: 1,
