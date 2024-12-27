@@ -195,7 +195,10 @@ const AdminStack = () => {
       <Stack.Screen
         name="RestaurantDetailsScreen"
         component={RestaurantDetailsScreen}
-        options={{ title: 'Restaurant Management' }}
+        options={{ title: 'Restaurant Management',
+          headerShown: true,
+          backgroundColor: "red",
+         }}
       />
       <Stack.Screen
         name="Users"
