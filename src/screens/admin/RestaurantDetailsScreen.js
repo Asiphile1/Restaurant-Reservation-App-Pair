@@ -29,7 +29,7 @@ const RestaurantDetailsScreen = ({ route }) => {
       setError(null);
 
       const response = await fetch(
-        `http://localhost:4050/restaurants/admin/reservations/${restaurant._id}`,
+        `https://reservationappserver.onrender.com/restaurants/admin/reservations/${restaurant._id}`,
         {
           headers: {
             'Content-Type': 'application/json',
