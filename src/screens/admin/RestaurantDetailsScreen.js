@@ -7,147 +7,200 @@ import {
   Alert,
   FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import tw from 'twrnc';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useSelector } from 'react-redux';
+import { format } from 'date-fns';
 
 const RestaurantDetailsScreen = ({ route }) => {
-  const { restaurant } = route.params || {}; // Ensure restaurant is not undefined
+  const { restaurant } = route.params ?? {};
   const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const token = useSelector((state) => state.auth.token);
 
-  // Fetch reservations for the selected restaurant
-  useEffect(() => {
-    if (restaurant) {
-      fetchReservations();
-    }
-  }, [restaurant]);
-
-  const fetchReservations = async () => {
+  const fetchReservations = async (showLoadingIndicator = true) => {
     try {
+      if (showLoadingIndicator) setIsLoading(true);
+      setError(null);
+
       const response = await fetch(
-        `https://reservationappserver.onrender.com/restaurants/reservations?restaurantId=${restaurant._id}`
+        `http://localhost:4050/restaurants/admin/reservations/${restaurant._id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch reservations: ${response.statusText}`);
-        
+        throw new Error('Failed to fetch reservations');
       }
+
       const data = await response.json();
       setReservations(data);
-    } catch (error) {
-      console.error('Error fetching reservations:', error);
-      Alert.alert('Error', 'Failed to fetch reservations. Please try again.');
+    } catch (err) {
+      setError('Unable to load reservations. Please try again later.');
+      console.error('Error:', err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  const handleConfirmReservation = async (reservationId) => {
-    try {
-      const response = await fetch(
-        `https://reservationappserver.onrender.com/reservations/${reservationId}/confirm`,
-        {
-          method: 'PUT',
-        }
-      );
-
-      if (response.ok) {
-        Alert.alert('Success', 'Reservation confirmed!');
-        fetchReservations(); // Refresh reservations after confirmation
-      } else {
-        Alert.alert('Error', 'Failed to confirm reservation. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error confirming reservation:', error);
-      Alert.alert('Error', 'An error occurred. Please try again.');
+  useEffect(() => {
+    if (restaurant?._id) {
+      fetchReservations();
     }
-  };
+  }, [restaurant?._id]);
 
-  const handleRejectReservation = async (reservationId) => {
+  const handleReservationAction = async (reservationId, action) => {
     try {
       const response = await fetch(
-        `https://reservationappserver.onrender.com/reservations/${reservationId}/reject`,
-        {
-          method: 'PUT',
-        }
+        `https://reservationappserver.onrender.com/reservations/${reservationId}/${action}`,
+        { method: 'PUT' }
       );
 
-      if (response.ok) {
-        Alert.alert('Success', 'Reservation rejected!');
-        fetchReservations(); // Refresh reservations after rejection
-      } else {
-        Alert.alert('Error', 'Failed to reject reservation. Please try again.');
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} reservation`);
       }
-    } catch (error) {
-      console.error('Error rejecting reservation:', error);
-      Alert.alert('Error', 'An error occurred. Please try again.');
+
+      setReservations(prev => 
+        prev.map(res => 
+          res._id === reservationId 
+            ? { ...res, status: action === 'confirm' ? 'Confirmed' : 'Rejected' }
+            : res
+        )
+      );
+
+      Alert.alert('Success', `Reservation ${action}ed successfully`);
+    } catch (err) {
+      Alert.alert('Error', err.message);
     }
   };
 
   if (!restaurant) {
     return (
-      <View style={tw`flex-1 justify-center items-center`}>
-        <Text style={tw`text-lg text-gray-600`}>Restaurant not found.</Text>
+      <View style={tw`flex-1 justify-center items-center bg-gray-50`}>
+        <Text style={tw`text-lg text-gray-600`}>Restaurant not found</Text>
       </View>
     );
   }
 
+  const ReservationCard = ({ item }) => (
+    <View style={tw`bg-white rounded-xl p-4 mb-3 shadow-sm`}>
+      <View style={tw`flex-row justify-between items-start`}>
+        <View style={tw`flex-1`}>
+          <Text style={tw`text-lg font-bold text-gray-900`}>{item.name}</Text>
+          <Text style={tw`text-sm text-gray-600 mt-1`}>
+            {format(new Date(item.date), 'MMM dd, yyyy')} at {item.time}
+          </Text>
+          <Text style={tw`text-sm text-gray-600`}>{item.guests} guests</Text>
+          <View style={tw`mt-2`}>
+            <Text style={tw`text-sm ${
+              item.status === 'Confirmed' ? 'text-green-600' :
+              item.status === 'Rejected' ? 'text-red-600' :
+              'text-yellow-600'
+            }`}>
+              {item.status}
+            </Text>
+          </View>
+        </View>
+        
+        <View style={tw`flex-row gap-3`}>
+          <TouchableOpacity
+            onPress={() => handleReservationAction(item._id, 'confirm')}
+            style={tw`p-2`}
+            disabled={item.status !== 'Pending'}
+          >
+            <Ionicons 
+              name="checkmark-circle" 
+              size={28} 
+              color={item.status === 'Pending' ? '#22c55e' : '#d1d5db'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleReservationAction(item._id, 'reject')}
+            style={tw`p-2`}
+            disabled={item.status !== 'Pending'}
+          >
+            <Ionicons 
+              name="close-circle" 
+              size={28} 
+              color={item.status === 'Pending' ? '#ef4444' : '#d1d5db'}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
-    <View style={tw`flex-1 bg-gray-100 p-4`}>
-      {/* Restaurant Details */}
-      <View style={tw`mb-4`}>
+    <View style={tw`flex-1 bg-gray-50`}>
+      <View style={tw`h-56 relative`}>
         <Image
           source={{ uri: restaurant.image }}
-          style={tw`w-full h-48 rounded-lg`}
+          style={tw`w-full h-full`}
           resizeMode="cover"
         />
-        <Text style={tw`text-2xl font-bold mt-4`}>{restaurant.name}</Text>
-        <Text style={tw`text-gray-600`}>{restaurant.location}</Text>
-        <Text style={tw`text-gray-600`}>Cuisine: {restaurant.cuisine}</Text>
-        <Text style={tw`text-gray-600`}>Capacity: {restaurant.capacity}</Text>
+        <View style={tw`absolute bottom-0 left-0 right-0 p-4 bg-black/30`}>
+          <Text style={tw`text-2xl font-bold text-white`}>{restaurant.name}</Text>
+          <Text style={tw`text-white text-sm mt-1`}>
+            {restaurant.cuisine} • {restaurant.location}
+          </Text>
+        </View>
       </View>
 
-      {/* Reservations List */}
-      <Text style={tw`text-xl font-semibold mb-4`}>Reservations</Text>
-      {loading ? (
-        <View style={tw`flex-1 justify-center items-center`}>
-          <ActivityIndicator size="large" color="#1E88E5" />
-          <Text style={tw`text-gray-600 mt-4`}>Loading reservations...</Text>
+      <View style={tw`flex-1 px-4`}>
+        <View style={tw`flex-row justify-between items-center mt-4 mb-2`}>
+          <Text style={tw`text-xl font-semibold text-gray-900`}>Reservations</Text>
+          <Text style={tw`text-sm text-gray-600`}>
+            Capacity: {restaurant.capacity}
+          </Text>
         </View>
-      ) : (
-        reservations ? 
-        <FlatList
-          data={reservations}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={({ item }) => (
-            <View style={tw`flex-row items-center justify-between p-4 mb-2 bg-white border border-gray-300 rounded-lg`}>
-              <View>
-                <Text style={tw`text-lg font-semibold`}>{item.name}</Text>
-                <Text style={tw`text-sm text-gray-500`}>
-                  {item.date} at {item.time} for {item.guests} guests
-                </Text>
-                <Text style={tw`text-sm text-gray-500`}>Status: {item.status}</Text>
+
+        {isLoading ? (
+          <View style={tw`flex-1 justify-center items-center`}>
+            <ActivityIndicator size="large" color="#1E88E5" />
+          </View>
+        ) : error ? (
+          <View style={tw`flex-1 justify-center items-center p-4`}>
+            <Text style={tw`text-gray-600 text-center mb-4`}>{error}</Text>
+            <TouchableOpacity
+              onPress={() => fetchReservations()}
+              style={tw`bg-blue-500 px-6 py-3 rounded-full`}
+            >
+              <Text style={tw`text-white font-medium`}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={reservations}
+            keyExtractor={item => item._id}
+            renderItem={({ item }) => <ReservationCard item={item} />}
+            contentContainerStyle={tw`py-4`}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => {
+                  setIsRefreshing(true);
+                  fetchReservations(false);
+                }}
+              />
+            }
+            ListEmptyComponent={
+              <View style={tw`flex-1 justify-center items-center py-8`}>
+                <Text style={tw`text-gray-600`}>No reservations found</Text>
               </View>
-              <View style={tw`flex-row`}>
-                <TouchableOpacity
-                  onPress={() => handleConfirmReservation(item._id)}
-                  style={tw`mr-4`}
-                >
-                  <Ionicons name="checkmark-circle-outline" size={24} color="green" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleRejectReservation(item._id)}>
-                  <Ionicons name="close-circle-outline" size={24} color="red" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
-        :
-        <View style={tw`flex-1 justify-center items-center`}>
-          <ActivityIndicator size="large" color="#1E88E5" />
-          <Text style={tw`text-gray-600 mt-4`}>No Reservations Found!</Text>
-        </View>
-      )}
+            }
+          />
+        )}
+      </View>
     </View>
   );
 };
