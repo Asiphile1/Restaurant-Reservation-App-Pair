@@ -160,9 +160,11 @@ JWT_SECRET=your_jwt_secret
 STRIPE_SECRET_KEY=your_stripe_secret_key
 ```
 
-## 📚 API Documentation
 
-Detailed API documentation is available in the backend repository's `/docs` directory.
+## 📚 App Documentation:
+
+(https://docs.google.com/document/d/1-WjoM2FFmADOAS0e_Wpe3NMByHYroZUS-fxQC6Y7P8I/edit?usp=sharing)
+
 
 ## 🧪 Testing
 
